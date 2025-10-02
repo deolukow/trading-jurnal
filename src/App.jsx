@@ -688,7 +688,7 @@ const GalleryView = ({ trades, activePeriod, setActivePeriod, periods, onShowTra
         );
     };
 
-    const galleryTrades = trades.filter(trade => trade.screenshotAfterId);
+    const galleryTrades = trades.filter(trade => trade.screenshotAfterId).sort((a, b) => new Date(b.tradeDate) - new Date(a.tradeDate));
     return (<div className="animate-fadeIn"><h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Galeri Visual Trade</h2><div className="flex space-x-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6">{periods.map(p => (<button key={p.key} onClick={() => setActivePeriod(p.key)} className={classNames("px-4 py-2 text-sm font-medium rounded-lg transition-colors flex-grow", activePeriod === p.key ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700')}>{p.label}</button>))}</div>{galleryTrades.length === 0 ? (<div className="bg-white dark:bg-gray-800 p-10 rounded-xl text-center text-gray-500 mt-10"><Image size={48} className="mx-auto mb-3 text-gray-400 dark:text-gray-600"/><p className="text-lg">Tidak ada trade dengan gambar di periode ini.</p><p className="text-sm mt-1">Pastikan Anda mengupload gambar saat menambahkan trade.</p></div>) : (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">{galleryTrades.map(trade => <GalleryImage key={trade.id} trade={trade} />)}</div>)}</div>);
 };
 
