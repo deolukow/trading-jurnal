@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'; // Re-added Firestore
 import { ArrowUpRight, ArrowDownRight, Edit3, Trash2, PlusCircle, AlertTriangle, CheckCircle, XCircle, Save, Wallet, BarChartHorizontal, LayoutDashboard, DollarSign, Target, Divide, CalendarDays, Ratio, ExternalLink, Camera, Image, ChevronLeft, ChevronRight, Hash, Copy, Zap, Info, Clock, Maximize2, Calculator, TrendingUp, Users, ChevronDown, UploadCloud, ListPlus, Menu, Sun, Moon, LogOut, LogIn, Eye, EyeOff } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Bar, ReferenceLine } from 'recharts';
 
 
 // Firebase Configuration (Now includes Firestore)
@@ -791,13 +791,54 @@ const StatisticsDashboard = ({ stats, currency }) => {
 
 
 // --- CHART COMPONENT ---
-const AccountBalanceChart = ({ data, period, currency, theme }) => { 
+const AccountBalanceChart = ({ data, period, currency, theme, chartType }) => { 
     const axisColor = theme === 'dark' ? '#A0AEC0' : '#4A5568';
     const gridColor = theme === 'dark' ? '#4A5568' : '#E2E8F0';
-    const getXAxisFormat = (dateStr) => { const date = new Date(dateStr); if (isNaN(date)) return dateStr; if (period === 'monthly') return date.toLocaleString('id-ID', { month: 'short', year: 'numeric' }); if (period === 'weekly') return date.toLocaleString('id-ID', { month: 'short', day: 'numeric' }); if (period === 'daily') return date.toLocaleString('id-ID', { month: 'short', day: 'numeric' }); if (period === 'yearly') return date.getFullYear(); return date.toLocaleDateString('id-ID'); }; 
-    const CustomTooltip = ({ active, payload, label }) => { if (active && payload && payload.length) { return (<div className="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm p-3 rounded-lg border border-gray-300 dark:border-gray-600"><p className="text-gray-700 dark:text-gray-300 text-sm">{`Tanggal: ${label}`}</p><p className="text-gray-900 dark:text-white font-bold">{`Saldo: ${formatCurrency(payload[0].value, currency)}`}</p></div>); } return null; }; 
-    return (<div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg mb-6 h-80 animate-fadeIn"><h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Riwayat Saldo Akun</h3><ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 20 }}><CartesianGrid strokeDasharray="3 3" stroke={gridColor} /><XAxis dataKey="name" stroke={axisColor} tickFormatter={getXAxisFormat} tick={{ fontSize: 12 }} /><YAxis stroke={axisColor} tickFormatter={(value) => currency === 'IDR' ? `${(value/1000000)}jt` : `$${(value/1000)}k` } tick={{ fontSize: 12 }} /><Tooltip content={<CustomTooltip />} /><defs><linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs><Area type="monotone" dataKey="balance" stroke="#3b82f6" fillOpacity={1} fill="url(#colorBalance)" strokeWidth={2} /></AreaChart></ResponsiveContainer></div>);};
+    const tooltipLabel = chartType === 'balance' ? 'Saldo' : 'P&L';
 
+    const getXAxisFormat = (dateStr) => { 
+        if (dateStr === 'Start') return 'Awal';
+        const date = new Date(dateStr); 
+        if (isNaN(date)) return dateStr; 
+        if (period === 'monthly') return date.toLocaleString('id-ID', { month: 'short', year: 'numeric' }); 
+        if (period === 'weekly') return date.toLocaleString('id-ID', { month: 'short', day: 'numeric' }); 
+        if (period === 'daily') return date.toLocaleString('id-ID', { month: 'short', day: 'numeric' }); 
+        if (period === 'yearly') return date.getFullYear(); 
+        return date.toLocaleDateString('id-ID'); 
+    }; 
+
+    const CustomTooltip = ({ active, payload, label }) => { 
+        if (active && payload && payload.length) { 
+            const displayLabel = label === 'Start' ? 'Awal Periode' : `Tanggal: ${label}`;
+            return (
+                <div className="bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm p-3 rounded-lg border border-gray-300 dark:border-gray-600">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">{displayLabel}</p>
+                    <p className="text-gray-900 dark:text-white font-bold">{`${tooltipLabel}: ${formatCurrency(payload[0].value, currency)}`}</p>
+                </div>
+            ); 
+        } 
+        return null; 
+    }; 
+    
+    return (
+        <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                <XAxis dataKey="name" stroke={axisColor} tickFormatter={getXAxisFormat} tick={{ fontSize: 12 }} />
+                <YAxis stroke={axisColor} tickFormatter={(value) => currency === 'IDR' ? `${(value/1000000)}jt` : `$${(value/1000)}k` } tick={{ fontSize: 12 }} domain={['dataMin', 'dataMax']} />
+                <Tooltip content={<CustomTooltip />} />
+                {chartType === 'pnl' && <ReferenceLine y={0} stroke={axisColor} strokeDasharray="4 4" />}
+                <defs>
+                    <linearGradient id="colorChart" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorChart)" strokeWidth={2} />
+            </AreaChart>
+        </ResponsiveContainer>
+    );
+};
 
 // --- TEMPLATE MANAGEMENT MODAL ---
 const TemplateManagementModal = ({ activeProfileId, showToast, onClose, templates, openDeleteModal }) => {
@@ -1253,19 +1294,10 @@ function App() {
     const [activeView, setActiveView] = useState('dashboard');
     const [activePeriod, setActivePeriod] = useState('all'); 
     const [sortConfig, setSortConfig] = useState({ key: 'tradeDate', direction: 'descending' });
+    const [chartType, setChartType] = useState('balance');
     
     const periods = useMemo(() => [ { key: 'all', label: 'Semua' }, { key: 'daily', label: 'Harian' }, { key: 'weekly', label: 'Mingguan' }, { key: 'monthly', label: 'Bulanan' }, { key: 'yearly', label: 'Tahunan' } ], []);
-useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
     useEffect(() => {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
@@ -1652,19 +1684,19 @@ useEffect(() => {
     }, [filteredTrades, activeProfile]);
     
     const accountStats = useMemo(() => { 
-        if (!activeProfile) return {accountBalanceData: []}; 
-        
-        const allTradesForProfile = trades; // All trades for the current profile
-        const allTransactionsForProfile = balanceTransactions; // All transactions for the current profile
+        if (!activeProfile) return { chartData: [] }; 
+
+        const allTradesForProfile = trades;
+        const allTransactionsForProfile = balanceTransactions;
 
         const combinedEvents = [
             ...allTradesForProfile.map(t => ({ type: 'trade', date: t.tradeDate, pnl: t.pnl })),
             ...allTransactionsForProfile.map(t => ({ type: t.type, date: t.date, amount: t.amount }))
         ].sort((a, b) => (a.date?.getTime() || 0) - (b.date?.getTime() || 0));
 
+        // Generate full history for both types
         let cumulativeBalance = 0;
-        const data = [{ name: 'Initial', balance: 0 }];
-
+        const balanceHistory = [];
         combinedEvents.forEach(e => {
             if (e.type === 'trade') {
                 cumulativeBalance += parseFloat(e.pnl) || 0;
@@ -1673,15 +1705,25 @@ useEffect(() => {
             } else if (e.type === 'withdrawal') {
                 cumulativeBalance -= parseFloat(e.amount) || 0;
             }
-            data.push({ name: formatDate(e.date), balance: cumulativeBalance });
+            balanceHistory.push({ name: formatDate(e.date), value: cumulativeBalance });
         });
 
-        // Filter data based on active period for display
+        let cumulativePnl = 0;
+        const pnlHistory = [];
+        allTradesForProfile.sort((a,b) => (a.tradeDate?.getTime() || 0) - (b.tradeDate?.getTime() || 0)).forEach(t => {
+            cumulativePnl += parseFloat(t.pnl) || 0;
+            pnlHistory.push({ name: formatDate(t.tradeDate), value: cumulativePnl });
+        });
+
+        // Select and filter data based on chart type and period
         const periodFilteredData = () => {
-             if (activePeriod === 'all') return data;
-             const now = new Date();
-             let startOfPeriod = new Date(now);
-             switch(activePeriod){ 
+            const sourceData = chartType === 'balance' ? balanceHistory : pnlHistory;
+            if (sourceData.length === 0) return [];
+            if (activePeriod === 'all') return sourceData;
+
+            const now = new Date();
+            const startOfPeriod = new Date(now);
+            switch(activePeriod){ 
                 case 'daily': startOfPeriod.setHours(0,0,0,0); break; 
                 case 'weekly': const d=now.getDay();startOfPeriod.setDate(now.getDate()-d+(d===0?-6:1));startOfPeriod.setHours(0,0,0,0); break; 
                 case 'monthly': startOfPeriod.setDate(1);startOfPeriod.setHours(0,0,0,0); break; 
@@ -1689,18 +1731,33 @@ useEffect(() => {
                 default: break; 
             }
             
-            // Find the last balance entry before the start of the period to use as the initial balance for the chart
-            const lastBalanceBeforePeriod = [...data].reverse().find(d => new Date(d.name).getTime() < startOfPeriod.getTime());
-            const initialChartBalance = lastBalanceBeforePeriod ? lastBalanceBeforePeriod.balance : 0;
+            const lastDataBeforePeriod = [...sourceData].reverse().find(d => new Date(d.name).getTime() < startOfPeriod.getTime());
+            const baselineValue = lastDataBeforePeriod ? lastDataBeforePeriod.value : 0;
             
-            const filteredData = data.filter(d => new Date(d.name).getTime() >= startOfPeriod.getTime());
-            return [{ name: 'Start', balance: initialChartBalance }, ...filteredData];
-        }
+            const filteredData = sourceData.filter(d => new Date(d.name).getTime() >= startOfPeriod.getTime());
+            
+            if (filteredData.length > 0) {
+                 if (new Date(filteredData[0].name).getTime() !== startOfPeriod.getTime()){
+                    return [{ name: 'Start', value: baselineValue }, ...filteredData];
+                }
+                return filteredData;
+            }
+            
+            return [{ name: 'Start', value: baselineValue }];
+        };
 
-        return { accountBalanceData: periodFilteredData() }; 
-    }, [trades, balanceTransactions, activeProfile, activePeriod]);
+        return { chartData: periodFilteredData() }; 
+    }, [trades, balanceTransactions, activeProfile, activePeriod, chartType]);
     
-    const currentBalance = accountStats.accountBalanceData.slice(-1)[0]?.balance || 0;
+     const currentBalance = useMemo(() => {
+        if (!activeProfile) return 0;
+        const cumulativePnl = trades.reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+        const cumulativeTransactions = balanceTransactions.reduce((sum, t) => {
+            const amount = parseFloat(t.amount) || 0;
+            return sum + (t.type === 'deposit' ? amount : -amount);
+        }, 0);
+        return cumulativeTransactions + cumulativePnl;
+    }, [trades, balanceTransactions, activeProfile]);
 
     // --- RENDER LOGIC ---
     if (!isAuthReady || isLoading) { return <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-900 dark:text-white">Memuat Autentikasi...</div>; }
@@ -1830,7 +1887,32 @@ useEffect(() => {
                                 <GoalProgress goal={goalSettings} currentPnl={performanceStats.netPnl} period={activePeriod} currency={activeProfile?.currency} />
                                 {activePeriod === 'daily' && <DailyGoalProgress goal={goalSettings} currentPnl={performanceStats.netPnl} currency={activeProfile?.currency} />}
                                 <StatisticsDashboard stats={performanceStats} currency={activeProfile?.currency} />
-                                <AccountBalanceChart data={accountStats.accountBalanceData} period={activePeriod} currency={activeProfile?.currency} theme={theme} />
+                                
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg mb-6 animate-fadeIn">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 sm:mb-0">
+                                            {chartType === 'balance' ? 'Riwayat Saldo Akun' : 'Riwayat P&L Kumulatif'}
+                                        </h3>
+                                        <div className="flex space-x-1 p-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg">
+                                            <button 
+                                                onClick={() => setChartType('balance')} 
+                                                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === 'balance' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                                            >
+                                                Grafik Saldo
+                                            </button>
+                                            <button 
+                                                onClick={() => setChartType('pnl')} 
+                                                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === 'pnl' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                                            >
+                                                Grafik P&L
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="h-80">
+                                      <AccountBalanceChart data={accountStats.chartData} period={activePeriod} currency={activeProfile?.currency} theme={theme} chartType={chartType} />
+                                    </div>
+                                </div>
+
                                 <TradeList 
                                     trades={sortedTrades} 
                                     onView={handleShowTradeDetail} 
@@ -1855,9 +1937,4 @@ useEffect(() => {
 }
 
 export default App;
-
-
-
-
-
 
