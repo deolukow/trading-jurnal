@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'; // Re-added Firestore
-import { ArrowUpRight, ArrowDownRight, Edit3, Trash2, PlusCircle, AlertTriangle, CheckCircle, XCircle, Save, Wallet, BarChartHorizontal, LayoutDashboard, DollarSign, Target, Divide, CalendarDays, Ratio, ExternalLink, Camera, Image, ChevronLeft, ChevronRight, Hash, Copy, Zap, Info, Clock, Maximize2, Calculator, TrendingUp, Users, ChevronDown, UploadCloud, ListPlus, Menu, Sun, Moon, LogOut, LogIn } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Edit3, Trash2, PlusCircle, AlertTriangle, CheckCircle, XCircle, Save, Wallet, BarChartHorizontal, LayoutDashboard, DollarSign, Target, Divide, CalendarDays, Ratio, ExternalLink, Camera, Image, ChevronLeft, ChevronRight, Hash, Copy, Zap, Info, Clock, Maximize2, Calculator, TrendingUp, Users, ChevronDown, UploadCloud, ListPlus, Menu, Sun, Moon, LogOut, LogIn, Eye, EyeOff } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, Bar } from 'recharts';
 
 
@@ -225,6 +225,7 @@ const LoginPage = ({ onLogin, error, theme, onToggleTheme }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -260,18 +261,26 @@ const LoginPage = ({ onLogin, error, theme, onToggleTheme }) => {
                                 placeholder="Alamat email"
                             />
                         </div>
-                        <div>
+                        <div className="relative">
                             <input
                                 id="password"
                                 name="password"
-                                type="password"
+                                type={isPasswordVisible ? 'text' : 'password'}
                                 autoComplete="current-password"
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-none relative block w-full px-3 py-3 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                                 placeholder="Kata sandi"
                             />
+                            <button
+                                type="button"
+                                onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                title={isPasswordVisible ? "Sembunyikan password" : "Tampilkan password"}
+                            >
+                                {isPasswordVisible ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
                         </div>
                     </div>
 
