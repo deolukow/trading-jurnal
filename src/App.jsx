@@ -313,8 +313,9 @@ const LoginPage = ({ onLogin, error, theme, onToggleTheme }) => {
                         </button>
                     </div>
                 </form>
-                 <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                    Tidak punya akun? Hubungi administrator untuk mendapatkan kredensial login.
+                 <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400 px-4">
+                    <span className="font-bold text-yellow-500 dark:text-yellow-400">Penting:</span> Aplikasi ini menerapkan sistem keamanan <span className="font-semibold text-gray-700 dark:text-gray-300">satu akun untuk satu perangkat</span>.
+                    Untuk pembelian atau informasi lebih lanjut, silakan hubungi saya di Instagram: <a href="https://www.instagram.com/deolukow_" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-500 hover:underline">@deolukow_</a>.
                 </p>
             </div>
         </div>
