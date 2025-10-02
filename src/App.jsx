@@ -777,9 +777,22 @@ const StatisticsDashboard = ({ stats, currency }) => {
     const displayAvgWinLossRatio = isFinite(stats.avgWinLossRatio) ? stats.avgWinLossRatio.toFixed(2) : '∞';
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6 animate-fadeIn">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-fadeIn">
             <StatCard title="Net P&L" value={formatCurrency(stats.netPnl, currency)} icon={<DollarSign size={16} />} footer={ <span className={stats.netPnl >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}> {stats.netPnl >= 0 ? "Profit" : "Loss"} </span> } />
             <StatCard title="Trade Win %" icon={<Target size={16} />} footer={<span><span className="text-green-500 dark:text-green-400">{stats.wins} menang</span> / <span className="text-red-500 dark:text-red-400">{stats.losses} kalah</span></span>}> <GaugeChart value={stats.tradeWinRate} /> </StatCard>
+            <StatCard title="Streak W/L" icon={<Zap size={16}/>} footer={<span>Kemenangan / Kekalahan beruntun</span>}>
+                <div className="flex items-center justify-center space-x-6 text-center">
+                    <div>
+                        <p className="text-3xl font-bold text-green-500 dark:text-green-400">{stats.consecutiveWins}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Menang</p>
+                    </div>
+                    <div className="h-10 w-px bg-gray-200 dark:bg-gray-700"></div>
+                    <div>
+                        <p className="text-3xl font-bold text-red-500 dark:text-red-400">{stats.consecutiveLosses}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Kalah</p>
+                    </div>
+                </div>
+            </StatCard>
             <StatCard title="Profit Factor" value={displayProfitFactor} icon={<Divide size={16} />} footer={<div className="w-full flex flex-col items-center"><span className="text-green-500">{formatCurrency(stats.grossProfit, currency)}</span><span className="text-gray-500 mx-1">/</span><span className="text-red-500">{formatCurrency(stats.grossLoss, currency)}</span></div>} />
             <StatCard title="Day Win %" icon={<CalendarDays size={16} />} footer={<span><span className="text-green-500 dark:text-green-400">{stats.profitableDays} hari</span> / <span className="text-red-500 dark:text-red-400">{stats.losingDays} hari</span></span>}> <GaugeChart value={stats.dayWinRate} /> </StatCard>
             <StatCard title="Avg Win/Loss" icon={<BarChartHorizontal size={16} />} footer={<div className="w-full flex flex-col items-center"><RatioBar winValue={stats.avgWin} lossValue={Math.abs(stats.avgLoss)} /><div className="w-full flex justify-between mt-1"><span className="text-green-500 dark:text-green-400">{formatCurrency(stats.avgWin, currency)}</span><span className="text-red-500 dark:text-red-400">{formatCurrency(stats.avgLoss, currency)}</span></div></div>} value={displayAvgWinLossRatio} />
@@ -1647,10 +1660,10 @@ function App() {
     }, [filteredTrades, sortConfig, customFields]);
     
     const performanceStats = useMemo(() => {
-        const defaultStats = { netPnl: 0, tradeWinRate: 0, wins: 0, losses: 0, profitFactor: 0, dayWinRate: 0, profitableDays: 0, losingDays: 0, avgWinLossRatio: 0, avgWin: 0, avgLoss: 0, grossProfit: 0, grossLoss: 0, avgRiskReward: 0, totalLotUsed: 0 };
+        const defaultStats = { netPnl: 0, tradeWinRate: 0, wins: 0, losses: 0, profitFactor: 0, dayWinRate: 0, profitableDays: 0, losingDays: 0, avgWinLossRatio: 0, avgWin: 0, avgLoss: 0, grossProfit: 0, grossLoss: 0, avgRiskReward: 0, totalLotUsed: 0, consecutiveWins: 0, consecutiveLosses: 0 };
         if (!activeProfile) return defaultStats;
     
-        const statsTrades = filteredTrades;
+        const statsTrades = [...filteredTrades].sort((a, b) => (a.tradeDate?.getTime() || 0) - (b.tradeDate?.getTime() || 0));
         if (statsTrades.length === 0) return defaultStats;
     
         const winningTrades = statsTrades.filter(t => parseFloat(t.pnl) > 0);
@@ -1680,7 +1693,31 @@ function App() {
         const avgRiskReward = tradesWithRR.length > 0 ? totalRR / tradesWithRR.length : 0;
         const totalLotUsed = statsTrades.reduce((s, t) => s + (parseFloat(t.lotSize) || 0), 0);
     
-        return { netPnl, tradeWinRate, wins, losses, profitFactor, dayWinRate, profitableDays: pDays, losingDays: lDays, avgWinLossRatio, avgWin, avgLoss, grossProfit, grossLoss, avgRiskReward, totalLotUsed };
+        let maxWins = 0;
+        let currentWins = 0;
+        let maxLosses = 0;
+        let currentLosses = 0;
+        for (const trade of statsTrades) {
+            const pnl = parseFloat(trade.pnl) || 0;
+            if (pnl > 0) {
+                currentWins++;
+                currentLosses = 0;
+                if (currentWins > maxWins) {
+                    maxWins = currentWins;
+                }
+            } else if (pnl < 0) {
+                currentLosses++;
+                currentWins = 0;
+                if (currentLosses > maxLosses) {
+                    maxLosses = currentLosses;
+                }
+            } else {
+                currentWins = 0;
+                currentLosses = 0;
+            }
+        }
+
+        return { netPnl, tradeWinRate, wins, losses, profitFactor, dayWinRate, profitableDays: pDays, losingDays: lDays, avgWinLossRatio, avgWin, avgLoss, grossProfit, grossLoss, avgRiskReward, totalLotUsed, consecutiveWins: maxWins, consecutiveLosses: maxLosses };
     }, [filteredTrades, activeProfile]);
     
     const accountStats = useMemo(() => { 
