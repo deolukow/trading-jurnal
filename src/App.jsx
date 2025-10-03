@@ -641,9 +641,41 @@ const CustomFieldManagementModal = ({ activeProfileId, showToast, onClose, custo
     );
 };
 
+// --- DATE RANGE PICKER COMPONENT ---
+const DateRangePicker = ({ startDate, endDate, onStartDateChange, onEndDateChange }) => {
+    return (
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg mb-6 animate-fadeIn flex flex-col sm:flex-row items-center justify-center gap-4 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0">Pilih Rentang Tanggal:</h3>
+            <div className="flex items-center gap-2">
+                <label htmlFor="startDate" className="text-sm text-gray-500 dark:text-gray-400">Dari:</label>
+                <input
+                    type="date"
+                    id="startDate"
+                    value={startDate}
+                    onChange={(e) => onStartDateChange(e.target.value)}
+                    className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+            <div className="flex items-center gap-2">
+                <label htmlFor="endDate" className="text-sm text-gray-500 dark:text-gray-400">Hingga:</label>
+                <input
+                    type="date"
+                    id="endDate"
+                    value={endDate}
+                    onChange={(e) => onEndDateChange(e.target.value)}
+                    className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+        </div>
+    );
+};
+
 
 // --- GALLERY VIEW COMPONENT ---
-const GalleryView = ({ trades, activePeriod, setActivePeriod, periods, onShowTradeDetail, currency }) => {
+const GalleryView = ({ 
+    trades, activePeriod, setActivePeriod, periods, onShowTradeDetail, currency,
+    customStartDate, customEndDate, setCustomStartDate, setCustomEndDate 
+}) => {
     
     const GalleryImage = ({ trade }) => {
         const imageUrl = useLocalImage(trade.screenshotAfterId);
@@ -689,7 +721,35 @@ const GalleryView = ({ trades, activePeriod, setActivePeriod, periods, onShowTra
     };
 
     const galleryTrades = trades.filter(trade => trade.screenshotAfterId).sort((a, b) => new Date(b.tradeDate) - new Date(a.tradeDate));
-    return (<div className="animate-fadeIn"><h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Galeri Visual Trade</h2><div className="flex space-x-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6">{periods.map(p => (<button key={p.key} onClick={() => setActivePeriod(p.key)} className={classNames("px-4 py-2 text-sm font-medium rounded-lg transition-colors flex-grow", activePeriod === p.key ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700')}>{p.label}</button>))}</div>{galleryTrades.length === 0 ? (<div className="bg-white dark:bg-gray-800 p-10 rounded-xl text-center text-gray-500 mt-10"><Image size={48} className="mx-auto mb-3 text-gray-400 dark:text-gray-600"/><p className="text-lg">Tidak ada trade dengan gambar di periode ini.</p><p className="text-sm mt-1">Pastikan Anda mengupload gambar saat menambahkan trade.</p></div>) : (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">{galleryTrades.map(trade => <GalleryImage key={trade.id} trade={trade} />)}</div>)}</div>);
+    return (
+        <div className="animate-fadeIn">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Galeri Visual Trade</h2>
+            <div className="flex space-x-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6">
+                {periods.map(p => (
+                    <button key={p.key} onClick={() => setActivePeriod(p.key)} className={classNames("px-4 py-2 text-sm font-medium rounded-lg transition-colors flex-grow", activePeriod === p.key ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700')}>{p.label}</button>
+                ))}
+            </div>
+            {activePeriod === 'custom' && (
+                <DateRangePicker 
+                    startDate={customStartDate}
+                    endDate={customEndDate}
+                    onStartDateChange={setCustomStartDate}
+                    onEndDateChange={setCustomEndDate}
+                />
+            )}
+            {galleryTrades.length === 0 ? (
+                <div className="bg-white dark:bg-gray-800 p-10 rounded-xl text-center text-gray-500 mt-10">
+                    <Image size={48} className="mx-auto mb-3 text-gray-400 dark:text-gray-600"/>
+                    <p className="text-lg">Tidak ada trade dengan gambar pada periode ini.</p>
+                    <p className="text-sm mt-1">Pastikan Anda mengupload gambar saat menambahkan trade.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {galleryTrades.map(trade => <GalleryImage key={trade.id} trade={trade} />)}
+                </div>
+            )}
+        </div>
+    );
 };
 
 
@@ -813,7 +873,7 @@ const AccountBalanceChart = ({ data, period, currency, theme, chartType }) => {
         if (dateStr === 'Start') return 'Awal';
         const date = new Date(dateStr); 
         if (isNaN(date)) return dateStr; 
-        if (period === 'monthly') return date.toLocaleString('id-ID', { month: 'short', year: 'numeric' }); 
+        if (period === 'monthly' || period === 'custom') return date.toLocaleString('id-ID', { month: 'short', day: 'numeric' }); 
         if (period === 'weekly') return date.toLocaleString('id-ID', { month: 'short', day: 'numeric' }); 
         if (period === 'daily') return date.toLocaleString('id-ID', { month: 'short', day: 'numeric' }); 
         if (period === 'yearly') return date.getFullYear(); 
@@ -1308,8 +1368,17 @@ function App() {
     const [activePeriod, setActivePeriod] = useState('all'); 
     const [sortConfig, setSortConfig] = useState({ key: 'tradeDate', direction: 'descending' });
     const [chartType, setChartType] = useState('balance');
+    const [customStartDate, setCustomStartDate] = useState(new Date().toLocaleDateString('en-CA'));
+    const [customEndDate, setCustomEndDate] = useState(new Date().toLocaleDateString('en-CA'));
     
-    const periods = useMemo(() => [ { key: 'all', label: 'Semua' }, { key: 'daily', label: 'Harian' }, { key: 'weekly', label: 'Mingguan' }, { key: 'monthly', label: 'Bulanan' }, { key: 'yearly', label: 'Tahunan' } ], []);
+    const periods = useMemo(() => [ 
+        { key: 'all', label: 'Semua' }, 
+        { key: 'daily', label: 'Harian' }, 
+        { key: 'weekly', label: 'Mingguan' }, 
+        { key: 'monthly', label: 'Bulanan' }, 
+        { key: 'yearly', label: 'Tahunan' },
+        { key: 'custom', label: 'Kustom' }
+    ], []);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -1606,8 +1675,32 @@ function App() {
     // --- Memoized Calculations ---
     const filteredTrades = useMemo(() => {
         if (!activeProfile) return [];
+
+        const getStartOfDate = (dateString) => {
+            const date = new Date(dateString);
+            date.setHours(0, 0, 0, 0);
+            return date;
+        };
+    
+        const getEndOfDate = (dateString) => {
+            const date = new Date(dateString);
+            date.setHours(23, 59, 59, 999);
+            return date;
+        };
+
         const filterFn = (allTrades, period) => { 
             if (period === 'all') return allTrades; 
+
+            if (period === 'custom') {
+                if (!customStartDate || !customEndDate) return [];
+                const start = getStartOfDate(customStartDate);
+                const end = getEndOfDate(customEndDate);
+                return allTrades.filter(t => {
+                    const tradeDate = t.tradeDate || new Date(0);
+                    return tradeDate >= start && tradeDate <= end;
+                });
+            }
+
             const now = new Date(); 
             const startOfPeriod = new Date(now); 
             switch(period){ 
@@ -1620,7 +1713,7 @@ function App() {
             return allTrades.filter(t => (t.tradeDate || new Date(0)) >= startOfPeriod); 
         };
         return filterFn(trades, activePeriod);
-    }, [trades, activePeriod, activeProfile]);
+    }, [trades, activePeriod, activeProfile, customStartDate, customEndDate]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -1758,23 +1851,40 @@ function App() {
             if (sourceData.length === 0) return [];
             if (activePeriod === 'all') return sourceData;
 
-            const now = new Date();
-            const startOfPeriod = new Date(now);
-            switch(activePeriod){ 
-                case 'daily': startOfPeriod.setHours(0,0,0,0); break; 
-                case 'weekly': const d=now.getDay();startOfPeriod.setDate(now.getDate()-d+(d===0?-6:1));startOfPeriod.setHours(0,0,0,0); break; 
-                case 'monthly': startOfPeriod.setDate(1);startOfPeriod.setHours(0,0,0,0); break; 
-                case 'yearly': startOfPeriod.setMonth(0,1);startOfPeriod.setHours(0,0,0,0); break; 
-                default: break; 
+            let startOfPeriod;
+            let endOfPeriod = new Date(); // Only used for 'custom'
+    
+            if (activePeriod === 'custom') {
+                if (!customStartDate || !customEndDate) return [];
+                startOfPeriod = new Date(customStartDate);
+                startOfPeriod.setHours(0,0,0,0);
+                endOfPeriod = new Date(customEndDate);
+                endOfPeriod.setHours(23,59,59,999);
+            } else {
+                const now = new Date();
+                startOfPeriod = new Date(now);
+                switch(activePeriod){ 
+                    case 'daily': startOfPeriod.setHours(0,0,0,0); break; 
+                    case 'weekly': const d=now.getDay();startOfPeriod.setDate(now.getDate()-d+(d===0?-6:1));startOfPeriod.setHours(0,0,0,0); break; 
+                    case 'monthly': startOfPeriod.setDate(1);startOfPeriod.setHours(0,0,0,0); break; 
+                    case 'yearly': startOfPeriod.setMonth(0,1);startOfPeriod.setHours(0,0,0,0); break; 
+                    default: break; 
+                }
             }
             
             const lastDataBeforePeriod = [...sourceData].reverse().find(d => new Date(d.name).getTime() < startOfPeriod.getTime());
             const baselineValue = lastDataBeforePeriod ? lastDataBeforePeriod.value : 0;
             
-            const filteredData = sourceData.filter(d => new Date(d.name).getTime() >= startOfPeriod.getTime());
+            const filteredData = sourceData.filter(d => {
+                 const eventDate = new Date(d.name).getTime();
+                 if (activePeriod === 'custom') {
+                     return eventDate >= startOfPeriod.getTime() && eventDate <= endOfPeriod.getTime();
+                 }
+                 return eventDate >= startOfPeriod.getTime();
+            });
             
             if (filteredData.length > 0) {
-                 if (new Date(filteredData[0].name).getTime() !== startOfPeriod.getTime()){
+                 if (new Date(filteredData[0].name).getTime() > startOfPeriod.getTime()){
                     return [{ name: 'Start', value: baselineValue }, ...filteredData];
                 }
                 return filteredData;
@@ -1784,7 +1894,7 @@ function App() {
         };
 
         return { chartData: periodFilteredData() }; 
-    }, [trades, balanceTransactions, activeProfile, activePeriod, chartType]);
+    }, [trades, balanceTransactions, activeProfile, activePeriod, chartType, customStartDate, customEndDate]);
     
      const currentBalance = useMemo(() => {
         if (!activeProfile) return 0;
@@ -1795,6 +1905,16 @@ function App() {
         }, 0);
         return cumulativeTransactions + cumulativePnl;
     }, [trades, balanceTransactions, activeProfile]);
+
+    const getPeriodLabel = () => {
+        if (activePeriod === 'custom') {
+            const formattedStart = new Date(customStartDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'});
+            const formattedEnd = new Date(customEndDate).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'});
+            return `${formattedStart} - ${formattedEnd}`;
+        }
+        return periods.find(p => p.key === activePeriod)?.label;
+    };
+
 
     // --- RENDER LOGIC ---
     if (!isAuthReady || isLoading) { return <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-900 dark:text-white">Memuat Autentikasi...</div>; }
@@ -1920,6 +2040,14 @@ function App() {
                                         </button>
                                     ))}
                                 </div>
+                                {activePeriod === 'custom' && (
+                                    <DateRangePicker 
+                                        startDate={customStartDate}
+                                        endDate={customEndDate}
+                                        onStartDateChange={setCustomStartDate}
+                                        onEndDateChange={setCustomEndDate}
+                                    />
+                                )}
                                 
                                 <GoalProgress goal={goalSettings} currentPnl={performanceStats.netPnl} period={activePeriod} currency={activeProfile?.currency} />
                                 {activePeriod === 'daily' && <DailyGoalProgress goal={goalSettings} currentPnl={performanceStats.netPnl} currency={activeProfile?.currency} />}
@@ -1955,7 +2083,7 @@ function App() {
                                     onView={handleShowTradeDetail} 
                                     onEdit={(t)=> {setEditingTrade(t); setIsTradeFormVisible(true);}} 
                                     onDelete={(type, data) => openDeleteModal(type, data)} 
-                                    title={`Riwayat Trade (${periods.find(p => p.key === activePeriod)?.label})`}
+                                    title={`Riwayat Trade (${getPeriodLabel()})`}
                                     requestSort={requestSort}
                                     sortConfig={sortConfig}
                                     customFields={customFields}
@@ -1965,7 +2093,20 @@ function App() {
                         )}
 
                         {activeView === 'calendar' && (<CalendarView trades={trades} onView={handleShowTradeDetail} onEdit={(t)=> {setEditingTrade(t); setIsTradeFormVisible(true);}} onDelete={(type, data) => openDeleteModal(type, data)} customFields={customFields} currency={activeProfile?.currency} />)}
-                        {activeView === 'gallery' && (<GalleryView trades={filteredTrades} activePeriod={activePeriod} setActivePeriod={setActivePeriod} periods={periods} onShowTradeDetail={handleShowTradeDetail} currency={activeProfile?.currency}/>)}
+                        {activeView === 'gallery' && (
+                            <GalleryView 
+                                trades={filteredTrades} 
+                                activePeriod={activePeriod} 
+                                setActivePeriod={setActivePeriod} 
+                                periods={periods} 
+                                onShowTradeDetail={handleShowTradeDetail} 
+                                currency={activeProfile?.currency}
+                                customStartDate={customStartDate}
+                                customEndDate={customEndDate}
+                                setCustomStartDate={setCustomStartDate}
+                                setCustomEndDate={setCustomEndDate}
+                            />
+                        )}
                     </div>
                 </main>
             </div>
