@@ -206,22 +206,8 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => { 
 const SidebarLink = ({ icon, text, active, onClick }) => (<li className={`mb-2`}><a href="#" onClick={onClick} className={`flex items-center p-3 rounded-lg transition-colors ${active ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'}`}>{icon}<span className="ml-3">{text}</span></a></li>);
 
 
-// --- THEME SWITCHER COMPONENT ---
-const ThemeSwitcher = ({ theme, onToggle }) => {
-    return (
-        <button
-            onClick={onToggle}
-            className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-            title={`Ganti ke mode ${theme === 'dark' ? 'terang' : 'gelap'}`}
-        >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-    );
-};
-
-
 // --- LOGIN PAGE COMPONENT ---
-const LoginPage = ({ onLogin, error, theme, onToggleTheme }) => {
+const LoginPage = ({ onLogin, error }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -236,9 +222,6 @@ const LoginPage = ({ onLogin, error, theme, onToggleTheme }) => {
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center font-sans relative">
-            <div className="absolute top-5 right-5">
-                <ThemeSwitcher theme={theme} onToggle={onToggleTheme} />
-            </div>
             <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
                 <div className="text-center">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -864,9 +847,9 @@ const StatisticsDashboard = ({ stats, currency }) => {
 
 
 // --- CHART COMPONENT ---
-const AccountBalanceChart = ({ data, period, currency, theme, chartType }) => { 
-    const axisColor = theme === 'dark' ? '#A0AEC0' : '#4A5568';
-    const gridColor = theme === 'dark' ? '#4A5568' : '#E2E8F0';
+const AccountBalanceChart = ({ data, period, currency, chartType }) => { 
+    const axisColor = '#A0AEC0';
+    const gridColor = '#4A5568';
     const tooltipLabel = chartType === 'balance' ? 'Saldo' : 'P&L';
 
     const getXAxisFormat = (dateStr) => { 
@@ -1349,7 +1332,7 @@ function App() {
     const [loginError, setLoginError] = useState('');
 
     // UI State
-    const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'dark');
+    const theme = 'dark'; // Force dark theme
     const [toast, setToast] = useState({ message: '', type: '' });
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isTradeFormVisible, setIsTradeFormVisible] = useState(false);
@@ -1381,17 +1364,9 @@ function App() {
     ], []);
 
     useEffect(() => {
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-        localStorage.setItem('appTheme', theme);
-    }, [theme]);
+        document.documentElement.classList.add('dark');
+    }, []);
     
-    const handleToggleTheme = () => {
-        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    };
 
     const refreshProfiles = useCallback(async () => {
         const profilesData = await getAllItems('profiles');
@@ -1920,7 +1895,7 @@ function App() {
     if (!isAuthReady || isLoading) { return <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-900 dark:text-white">Memuat Autentikasi...</div>; }
     
     if (!user) {
-        return <LoginPage onLogin={handleLogin} error={loginError} theme={theme} onToggleTheme={handleToggleTheme}/>;
+        return <LoginPage onLogin={handleLogin} error={loginError} />;
     }
     
     if (isAuthReady && !isLoading && tradingProfiles.length === 0) {
@@ -2021,7 +1996,6 @@ function App() {
                             </h2>
                         </div>
                         <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
-                            <ThemeSwitcher theme={theme} onToggle={handleToggleTheme} />
                              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center border border-gray-200 dark:border-gray-700">
                                 <div className="text-xs text-gray-500 dark:text-gray-400">Saldo Saat Ini</div>
                                 <div className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(currentBalance, activeProfile?.currency)}</div>
@@ -2074,7 +2048,7 @@ function App() {
                                         </div>
                                     </div>
                                     <div className="h-80">
-                                      <AccountBalanceChart data={accountStats.chartData} period={activePeriod} currency={activeProfile?.currency} theme={theme} chartType={chartType} />
+                                      <AccountBalanceChart data={accountStats.chartData} period={activePeriod} currency={activeProfile?.currency} chartType={chartType} />
                                     </div>
                                 </div>
 
@@ -2115,4 +2089,5 @@ function App() {
 }
 
 export default App;
+
 
