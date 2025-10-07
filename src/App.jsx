@@ -890,7 +890,7 @@ const AccountBalanceChart = ({ data, period, currency, chartType }) => {
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                 </defs>
-                <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorChart)" strokeWidth={2} />
+                <Area type="linear" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorChart)" strokeWidth={2} />
             </AreaChart>
         </ResponsiveContainer>
     );
@@ -2089,5 +2089,6 @@ function App() {
 }
 
 export default App;
+
 
 
