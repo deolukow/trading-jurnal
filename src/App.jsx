@@ -1790,7 +1790,7 @@ const StatisticsDashboard = ({ stats, currency }) => {
     : "∞";
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6 animate-fadeIn">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 mb-6 animate-fadeIn">
       <StatCard
         title="Net P&L"
         value={formatCurrency(stats.netPnl, currency)}
@@ -1851,6 +1851,37 @@ const StatisticsDashboard = ({ stats, currency }) => {
         {" "}
         <GaugeChart value={stats.tradeWinRate} />{" "}
       </StatCard>
+
+      {/* CARD BARU: Best Trade */}
+      <StatCard
+        title="Best Trade"
+        value={formatCurrency(stats.bestTrade, currency)}
+        icon={<ArrowUpRight size={16} className="text-green-500" />}
+        footer={
+          <span className="text-gray-500">Profit Terbesar Periode Ini</span>
+        }
+      />
+
+      {/* CARD BARU: Worst Trade */}
+      <StatCard
+        title="Worst Trade"
+        value={formatCurrency(stats.worstTrade, currency)}
+        icon={<ArrowDownRight size={16} className="text-red-500" />}
+        footer={
+          <span className="text-gray-500">Loss Terbesar Periode Ini</span>
+        }
+      />
+
+      {/* CARD BARU: Best RR */}
+      <StatCard
+        title="Best RR"
+        value={stats.bestRR > 0 ? `${stats.bestRR.toFixed(2)}R` : "0.00R"}
+        icon={<TrendingUp size={16} className="text-blue-500" />}
+        footer={
+          <span className="text-gray-500">R:R Tertinggi Periode Ini</span>
+        }
+      />
+
       <StatCard
         title="Streak W/L"
         icon={<Zap size={16} />}
@@ -1995,7 +2026,7 @@ const AccountBalanceChart = ({ data, period, currency, chartType }) => {
         <YAxis
           stroke={axisColor}
           tickFormatter={(value) =>
-            currency === "IDR" ? `${value / 1000000}jt` : `$${value / 1000}k`
+            currency === "IDR" ? `${value / 1000000}jt` : `$${value / 100}k`
           }
           tick={{ fontSize: 12 }}
           domain={["dataMin", "dataMax"]}
@@ -4185,6 +4216,9 @@ function App() {
       consecutiveWins: 0,
       consecutiveLosses: 0,
       growthPercentage: 0,
+      bestTrade: 0,
+      worstTrade: 0,
+      bestRR: 0,
     };
     if (!activeProfile) return defaultStats;
 
@@ -4262,6 +4296,14 @@ function App() {
       }
     }
 
+    // Logic Baru untuk Best Trade, Worst Trade, & Best RR
+    const allPnls = statsTrades.map((t) => parseFloat(t.pnl) || 0);
+    const bestTrade = allPnls.length > 0 ? Math.max(...allPnls) : 0;
+    const worstTrade = allPnls.length > 0 ? Math.min(...allPnls) : 0;
+
+    const allRRs = statsTrades.map((t) => parseFloat(t.riskRewardRatio) || 0);
+    const bestRR = allRRs.length > 0 ? Math.max(...allRRs) : 0;
+
     // Calculate starting balance of the active period
     let startOfPeriod;
     if (activePeriod === "custom") {
@@ -4336,6 +4378,9 @@ function App() {
       consecutiveWins: maxWins,
       consecutiveLosses: maxLosses,
       growthPercentage,
+      bestTrade,
+      worstTrade,
+      bestRR,
     };
   }, [
     filteredTrades,
