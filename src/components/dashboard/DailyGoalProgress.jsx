@@ -22,7 +22,8 @@ export const DailyGoalProgress = ({ goal, currentPnl, currency }) => {
       : 0;
   const clampedLossProgress = Math.min(lossProgress, 100);
   const isLossLimitHit =
-    dailyLossTarget > 0 && Math.abs(currentPnl) >= dailyLossTarget;
+    dailyLossTarget > 0 && currentPnl < 0 && Math.abs(currentPnl) >= dailyLossTarget;
+
 
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg mb-6 animate-fadeIn">
@@ -52,9 +53,8 @@ export const DailyGoalProgress = ({ goal, currentPnl, currency }) => {
             </span>
             <div>
               <span
-                className={`font-bold ${
-                  isProfitAchieved ? "text-green-400" : "text-gray-900 dark:text-white"
-                }`}
+                className={`font-bold ${isProfitAchieved ? "text-green-400" : "text-gray-900 dark:text-white"
+                  }`}
               >
                 {formatCurrency(currentPnl > 0 ? currentPnl : 0, currency)}
               </span>
@@ -66,9 +66,8 @@ export const DailyGoalProgress = ({ goal, currentPnl, currency }) => {
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
             <div
-              className={`h-3 rounded-full transition-all duration-500 ease-out ${
-                isProfitAchieved ? "bg-green-500" : "bg-cyan-500"
-              }`}
+              className={`h-3 rounded-full transition-all duration-500 ease-out ${isProfitAchieved ? "bg-green-500" : "bg-cyan-500"
+                }`}
               style={{ width: `${clampedProfitProgress}%` }}
             ></div>
           </div>
@@ -80,9 +79,8 @@ export const DailyGoalProgress = ({ goal, currentPnl, currency }) => {
             <span className="text-gray-500 dark:text-gray-400">Batas Loss</span>
             <div>
               <span
-                className={`font-bold ${
-                  isLossLimitHit ? "text-red-400" : "text-gray-900 dark:text-white"
-                }`}
+                className={`font-bold ${isLossLimitHit ? "text-red-400" : "text-gray-900 dark:text-white"
+                  }`}
               >
                 {formatCurrency(currentPnl < 0 ? currentPnl : 0, currency)}
               </span>
