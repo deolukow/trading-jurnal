@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Camera,
   Image as ImageIcon,
@@ -12,11 +12,35 @@ import { FullscreenImageModal } from "./FullscreenImageModal";
 import { formatDateTime, formatCurrency, formatLotSize } from "../../utils/formatters";
 
 export const TradeDetailModal = ({ trade, onClose, customFields, currency }) => {
-  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [fullscreenImageIndex, setFullscreenImageIndex] = useState(-1);
+
+  // Lift image hooks to the top level
+  const beforeImageUrl = useLocalImage(trade?.screenshotBeforeId);
+  const afterImageUrl = useLocalImage(trade?.screenshotAfterId);
+
+  // Construct dynamic list of images that actually exist
+  const availableImages = useMemo(() => {
+    const list = [];
+    if (beforeImageUrl) {
+      list.push({
+        url: beforeImageUrl,
+        title: "Screenshot Sebelum Trade",
+        type: "before",
+      });
+    }
+    if (afterImageUrl) {
+      list.push({
+        url: afterImageUrl,
+        title: "Screenshot Sesudah Trade",
+        type: "after",
+      });
+    }
+    return list;
+  }, [beforeImageUrl, afterImageUrl]);
+
   if (!trade) return null;
 
-  const ImageCard = ({ title, imageId, icon }) => {
-    const imageUrl = useLocalImage(imageId);
+  const ImageCard = ({ title, imageUrl, icon, onClick }) => {
     return (
       <div className="flex-1 min-w-0">
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center">
@@ -25,7 +49,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency }) => 
         {imageUrl ? (
           <div
             className="relative aspect-[4/3] bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 cursor-pointer group"
-            onClick={() => setFullscreenImage(imageUrl)}
+            onClick={onClick}
           >
             <img
               src={imageUrl}
@@ -63,8 +87,9 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency }) => 
   return (
     <>
       <FullscreenImageModal
-        imageUrl={fullscreenImage}
-        onClose={() => setFullscreenImage(null)}
+        images={availableImages}
+        initialIndex={fullscreenImageIndex}
+        onClose={() => setFullscreenImageIndex(-1)}
       />
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -187,23 +212,31 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency }) => 
               <div className="flex flex-col sm:flex-row gap-4">
                 <ImageCard
                   title="Screenshot Sebelum Trade"
-                  imageId={trade.screenshotBeforeId}
+                  imageUrl={beforeImageUrl}
                   icon={
                     <Camera
                       size={18}
                       className="text-blue-500 dark:text-blue-400"
                     />
                   }
+                  onClick={() => {
+                    const idx = availableImages.findIndex((img) => img.type === "before");
+                    if (idx !== -1) setFullscreenImageIndex(idx);
+                  }}
                 />
                 <ImageCard
                   title="Screenshot Sesudah Trade"
-                  imageId={trade.screenshotAfterId}
+                  imageUrl={afterImageUrl}
                   icon={
                     <ImageIcon
                       size={18}
                       className="text-green-500 dark:text-green-400"
                     />
                   }
+                  onClick={() => {
+                    const idx = availableImages.findIndex((img) => img.type === "after");
+                    if (idx !== -1) setFullscreenImageIndex(idx);
+                  }}
                 />
               </div>
               <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
