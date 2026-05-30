@@ -10,6 +10,7 @@ import {
   getItem,
   getAllItems,
   getItemsByProfileId,
+  exportIndexedDB,
 } from "./config/db";
 import {
   formatDate,
@@ -218,6 +219,7 @@ function App() {
       setNotesImageId(finalImgId);
       setIsEditingNotes(false);
       showToast("Catatan berhasil disimpan!", "success");
+      triggerAutoBackup();
     } catch (e) {
       console.error(e);
       showToast("Gagal menyimpan catatan.", "error");
@@ -360,6 +362,7 @@ function App() {
         `dashboard_layout_${activeProfile.id}`,
         JSON.stringify(newLayoutOrder),
       );
+      triggerAutoBackup();
     }
   };
 
@@ -381,6 +384,7 @@ function App() {
         `dashboard_layout_${activeProfile.id}`,
         JSON.stringify(newLayoutOrder),
       );
+      triggerAutoBackup();
     }
   };
 
@@ -650,7 +654,76 @@ function App() {
     }
   }, [activeProfile]);
 
-  const refreshAllData = useCallback(async (profileId) => {
+  const triggerAutoBackup = useCallback(async () => {
+    const token = localStorage.getItem("gdrive_sync_token");
+    if (!token) return;
+    try {
+      console.log("Memulai pencadangan latar belakang...");
+      const backupData = await exportIndexedDB();
+      const scanRes = await fetch(
+        "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)",
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      let fileId = null;
+      if (scanRes.ok) {
+        const data = await scanRes.json();
+        const backupFile = data.files.find(f => f.name === "trading_journal_backup.json");
+        fileId = backupFile?.id;
+      }
+      const fileMetadata = {
+        name: "trading_journal_backup.json",
+        parents: ["appDataFolder"]
+      };
+      const fileBlob = new Blob([JSON.stringify(backupData)], { type: "application/json" });
+      let uploadRes;
+      if (fileId) {
+        uploadRes = await fetch(
+          `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+          {
+            method: "PATCH",
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: fileBlob
+          }
+        );
+      } else {
+        const form = new FormData();
+        form.append("metadata", new Blob([JSON.stringify(fileMetadata)], { type: "application/json" }));
+        form.append("file", fileBlob);
+        uploadRes = await fetch(
+          "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: form
+          }
+        );
+      }
+      if (uploadRes.ok) {
+        console.log("Pencadangan latar belakang berhasil!");
+        const now = new Date().toLocaleString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+        if (activeProfile) {
+          localStorage.setItem(`gdrive_last_sync_${activeProfile.id}`, now);
+        }
+      } else {
+        console.warn("Pencadangan latar belakang gagal: Google Drive API Error");
+      }
+    } catch (e) {
+      console.error("Gagal melakukan pencadangan latar belakang:", e);
+    }
+  }, [activeProfile]);
+
+  const refreshAllData = useCallback(async (profileId, shouldBackup = false) => {
     if (!profileId) {
       setTrades([]);
       setPairs([]);
@@ -696,6 +769,10 @@ function App() {
       .filter((t) => t.type === "withdrawal")
       .reduce((sum, t) => sum + t.amount, 0);
     setInitialBalance(totalDeposits - totalWithdrawals);
+
+    if (shouldBackup) {
+      triggerAutoBackup();
+    }
   }, []);
 
   useEffect(() => {
@@ -841,7 +918,7 @@ function App() {
       );
       setEditingTrade(null);
       setIsTradeFormVisible(false);
-      refreshAllData(activeProfile.id);
+      refreshAllData(activeProfile.id, true);
     } catch (e) {
       console.error(e);
       showToast("Gagal menyimpan trade.", "error");
@@ -933,7 +1010,7 @@ function App() {
 
       await deleteItem(storeName, data.id);
       showToast(`${itemName} berhasil dihapus.`, "success");
-      refreshAllData(activeProfile.id);
+      refreshAllData(activeProfile.id, true);
     } catch (e) {
       console.error(`Error deleting ${type}:`, e);
       showToast(`Gagal menghapus item.`, "error");
@@ -1844,9 +1921,9 @@ function App() {
             showToast={showToast}
             onClose={() => {
               setIsGoalModalVisible(false);
-              refreshAllData(activeProfile.id);
+              refreshAllData(activeProfile.id, true);
             }}
-            onRefresh={() => refreshAllData(activeProfile.id)}
+            onRefresh={() => refreshAllData(activeProfile.id, true)}
             currentGoal={goalSettings}
             currency={activeProfile?.currency}
           />
@@ -1857,9 +1934,9 @@ function App() {
             showToast={showToast}
             onClose={() => {
               setIsTransactionModalVisible(false);
-              refreshAllData(activeProfile.id);
+              refreshAllData(activeProfile.id, true);
             }}
-            onRefresh={() => refreshAllData(activeProfile.id)}
+            onRefresh={() => refreshAllData(activeProfile.id, true)}
             openDeleteModal={openDeleteModal}
             currency={activeProfile?.currency}
           />
@@ -1870,9 +1947,9 @@ function App() {
             showToast={showToast}
             onClose={() => {
               setIsPairModalVisible(false);
-              refreshAllData(activeProfile.id);
+              refreshAllData(activeProfile.id, true);
             }}
-            onRefresh={() => refreshAllData(activeProfile.id)}
+            onRefresh={() => refreshAllData(activeProfile.id, true)}
             pairs={pairs}
             openDeleteModal={openDeleteModal}
           />
@@ -1883,9 +1960,9 @@ function App() {
             showToast={showToast}
             onClose={() => {
               setIsTemplateModalVisible(false);
-              refreshAllData(activeProfile.id);
+              refreshAllData(activeProfile.id, true);
             }}
-            onRefresh={() => refreshAllData(activeProfile.id)}
+            onRefresh={() => refreshAllData(activeProfile.id, true)}
             templates={templates}
             customFields={customFields}
             strategies={strategies}
@@ -1898,9 +1975,9 @@ function App() {
             showToast={showToast}
             onClose={() => {
               setIsCustomFieldModalVisible(false);
-              refreshAllData(activeProfile.id);
+              refreshAllData(activeProfile.id, true);
             }}
-            onRefresh={() => refreshAllData(activeProfile.id)}
+            onRefresh={() => refreshAllData(activeProfile.id, true)}
             customFields={customFields}
             openDeleteModal={openDeleteModal}
           />

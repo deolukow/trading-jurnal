@@ -23,9 +23,16 @@ export const SyncPage = ({ activeProfile, showToast, onRefresh }) => {
     return localStorage.getItem("gdrive_sync_client_id") || DEFAULT_CLIENT_ID;
   });
   const [accessToken, setAccessToken] = useState(() => {
-    return sessionStorage.getItem("gdrive_sync_token") || "";
+    return localStorage.getItem("gdrive_sync_token") || "";
   });
-  const [userInfo, setUserInfo] = useState(null);
+  const [userInfo, setUserInfo] = useState(() => {
+    try {
+      const saved = localStorage.getItem("gdrive_connected_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [cloudBackupInfo, setCloudBackupInfo] = useState(null);
@@ -55,6 +62,7 @@ export const SyncPage = ({ activeProfile, showToast, onRefresh }) => {
       if (res.ok) {
         const data = await res.json();
         setUserInfo(data);
+        localStorage.setItem("gdrive_connected_user", JSON.stringify(data));
       } else {
         // Token expired
         handleLogout();
@@ -109,7 +117,7 @@ export const SyncPage = ({ activeProfile, showToast, onRefresh }) => {
         callback: (response) => {
           setIsConnecting(false);
           if (response && response.access_token) {
-            sessionStorage.setItem("gdrive_sync_token", response.access_token);
+            localStorage.setItem("gdrive_sync_token", response.access_token);
             setAccessToken(response.access_token);
             showToast("Berhasil terhubung ke Google Drive!", "success");
           } else {
@@ -132,7 +140,8 @@ export const SyncPage = ({ activeProfile, showToast, onRefresh }) => {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("gdrive_sync_token");
+    localStorage.removeItem("gdrive_sync_token");
+    localStorage.removeItem("gdrive_connected_user");
     setAccessToken("");
     setUserInfo(null);
     setCloudBackupInfo(null);
