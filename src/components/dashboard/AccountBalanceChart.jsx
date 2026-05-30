@@ -73,14 +73,14 @@ export const AccountBalanceChart = ({ data, period, currency, chartType }) => {
         )}
         <defs>
           <linearGradient id="colorChart" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
           </linearGradient>
         </defs>
         <Area
           type="linear"
           dataKey="value"
-          stroke="#3b82f6"
+          stroke="#8b5cf6"
           fillOpacity={1}
           fill="url(#colorChart)"
           strokeWidth={2}

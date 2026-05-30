@@ -1,1 +1,88 @@
 @import "tailwindcss";
+
+@theme {
+  /* Solid Dark Charcoal & Minimalist Grey (Finotive Funding Theme) */
+  --color-gray-950: #050607;
+  --color-gray-900: #0a0b0d; /* Crisp dark charcoal primary background */
+  --color-gray-800: #121316; /* Clean dark grey card backgrounds */
+  --color-gray-700: #202226; /* Minimalist clean borders & dividers */
+  --color-gray-650: #2a2c33;
+  --color-gray-600: #3a3e47;
+  --color-gray-500: #7f848e; /* Neutral medium grey subtext & labels */
+  --color-gray-400: #9ca3af;
+  --color-gray-300: #d1d5db;
+  --color-gray-200: #e5e7eb;
+
+  /* Violet brand colors (replacing the green/cyan accents from the image) */
+  --color-blue-950: #0d061a;
+  --color-blue-900: #190c33;
+  --color-blue-800: #291254;
+  --color-blue-700: #5b21b6;
+  --color-blue-600: #7c3aed; /* Brand violet buttons & active menu states */
+  --color-blue-500: #8b5cf6;
+  --color-blue-400: #a78bfa;
+  --color-blue-300: #c084fc;
+
+  --color-indigo-950: #0d061a;
+  --color-indigo-900: #190c33;
+  --color-indigo-800: #291254;
+  --color-indigo-700: #5b21b6;
+  --color-indigo-600: #7c3aed;
+  --color-indigo-500: #8b5cf6;
+  --color-indigo-400: #a78bfa;
+
+  /* Neon green for P&L profits & longs */
+  --color-green-950: #011b0e;
+  --color-green-900: #022a16;
+  --color-green-800: #064c27;
+  --color-green-700: #04763c;
+  --color-green-600: #00c853;
+  --color-green-500: #00e676; /* Radiant neon green */
+  --color-green-400: #69f0ae;
+
+  /* Neon red for P&L losses & shorts */
+  --color-red-950: #230209;
+  --color-red-900: #3c030d;
+  --color-red-800: #6f051a;
+  --color-red-700: #a20a26;
+  --color-red-600: #d50000;
+  --color-red-500: #ff1744; /* Glowing rose-red */
+  --color-red-400: #ff5252;
+}
+
+/* Custom premium scrollbar styling matching charcoal theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0b0d;
+}
+::-webkit-scrollbar-thumb {
+  background: #202226;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}
+
+/* Smooth active state transitions */
+button, select, input, textarea {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus and input glows */
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.4);
+  border-color: #8b5cf6 !important;
+}
+
+/* Glow highlight for wins and success elements */
+.text-green-500 {
+  text-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
+}
+
+/* Glow highlight for violet brand accents */
+.text-blue-500, .text-blue-400 {
+  text-shadow: 0 0 8px rgba(167, 139, 250, 0.3);
+}
