@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Target, Trash2 } from "lucide-react";
 import { addItem } from "../../config/db";
 
@@ -8,8 +8,54 @@ export const PairManagementModal = ({
   onClose,
   pairs,
   openDeleteModal,
+  onRefresh,
 }) => {
   const [newPair, setNewPair] = useState("");
+
+  // Touch Drag to Dismiss Logic
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    const currentY = e.touches[0].clientY;
+    const diffY = currentY - touchStartY.current;
+    if (diffY > 0) {
+      setTranslateY(diffY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (translateY > 120) {
+      onClose();
+    } else {
+      setTranslateY(0);
+    }
+  };
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  // Backdrop click handler
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   const handleAddPair = async (e) => {
     e.preventDefault();
@@ -33,6 +79,7 @@ export const PairManagementModal = ({
       await addItem("pairs", newPairData);
       showToast(`Pair ${pairName} berhasil ditambahkan.`, "success");
       setNewPair("");
+      if (onRefresh) await onRefresh();
     } catch (error) {
       showToast("Gagal menambah Pair.", "error");
       console.error("Error adding pair:", error);
@@ -40,16 +87,55 @@ export const PairManagementModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+    <div 
+      onClick={handleBackdropClick}
+      className="fixed inset-0 bg-slate-950/45 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+    >
+      <style>{`
+        @keyframes modalSpringIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.93) translateY(30px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        .animate-modalSpringIn {
+          animation: modalSpringIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+      `}</style>
+      <div 
+        className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col animate-modalSpringIn relative border border-gray-100 dark:border-gray-700/50"
+        style={{
+          transform: translateY > 0 ? `translateY(${translateY}px)` : undefined,
+          transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+        }}
+      >
+        {/* Swipe drag handle indicator for mobile */}
+        <div 
+          className="md:hidden flex justify-center pb-3 cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+        </div>
+
+        <div 
+          className="flex justify-between items-center mb-4 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
             <Target size={24} className="mr-2 text-yellow-400" /> Kelola Pair
             Trading
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light leading-none p-1"
           >
             &times;
           </button>
@@ -63,13 +149,13 @@ export const PairManagementModal = ({
             placeholder="Nama Pair (e.g., EUR/USD)"
             value={newPair}
             onChange={(e) => setNewPair(e.target.value.toUpperCase())}
-            className="flex-grow bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded"
+            className="flex-grow bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded focus:border-blue-500 outline-none"
             required
             maxLength={10}
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
           >
             Tambah
           </button>
@@ -106,7 +192,7 @@ export const PairManagementModal = ({
         <div className="flex justify-end mt-6 flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium text-sm"
           >
             Tutup
           </button>

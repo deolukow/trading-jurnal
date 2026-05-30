@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ListPlus, Plus, Edit3, Trash2 } from "lucide-react";
 import { addItem, updateItem } from "../../config/db";
 
@@ -8,12 +8,58 @@ export const CustomFieldManagementModal = ({
   onClose,
   customFields,
   openDeleteModal,
+  onRefresh,
 }) => {
   const [editingField, setEditingField] = useState(null);
   const [fieldName, setFieldName] = useState("");
   const [fieldType, setFieldType] = useState("text"); // 'text' or 'dropdown'
   const [dropdownOptions, setDropdownOptions] = useState([]);
   const [newOption, setNewOption] = useState("");
+
+  // Touch Drag to Dismiss Logic
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    const currentY = e.touches[0].clientY;
+    const diffY = currentY - touchStartY.current;
+    if (diffY > 0) {
+      setTranslateY(diffY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (translateY > 120) {
+      onClose();
+    } else {
+      setTranslateY(0);
+    }
+  };
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  // Backdrop click handler
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   const resetForm = () => {
     setEditingField(null);
@@ -66,15 +112,55 @@ export const CustomFieldManagementModal = ({
         showToast("Field berhasil ditambahkan", "success");
       }
       resetForm();
+      if (onRefresh) await onRefresh();
     } catch (err) {
       showToast("Gagal menyimpan field", "error");
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+    <div 
+      onClick={handleBackdropClick}
+      className="fixed inset-0 bg-slate-950/45 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+    >
+      <style>{`
+        @keyframes modalSpringIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.93) translateY(30px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        .animate-modalSpringIn {
+          animation: modalSpringIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+      `}</style>
+      <div 
+        className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-modalSpringIn relative border border-gray-100 dark:border-gray-700/50"
+        style={{
+          transform: translateY > 0 ? `translateY(${translateY}px)` : undefined,
+          transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+        }}
+      >
+        {/* Swipe drag handle indicator for mobile */}
+        <div 
+          className="md:hidden flex justify-center pb-3 cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+        </div>
+
+        <div 
+          className="flex justify-between items-center mb-4 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
             <ListPlus
               size={24}
@@ -84,7 +170,7 @@ export const CustomFieldManagementModal = ({
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light leading-none p-1"
           >
             &times;
           </button>
@@ -108,7 +194,7 @@ export const CustomFieldManagementModal = ({
                 type="text"
                 value={fieldName}
                 onChange={(e) => setFieldName(e.target.value)}
-                className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 rounded border border-gray-300 dark:border-gray-600"
+                className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 rounded border border-gray-300 dark:border-gray-600 text-sm focus:border-blue-500 outline-none"
                 placeholder="Contoh: Sesi atau Emosi"
                 required
               />
@@ -154,28 +240,28 @@ export const CustomFieldManagementModal = ({
                     type="text"
                     value={newOption}
                     onChange={(e) => setNewOption(e.target.value)}
-                    className="flex-grow bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 rounded border border-gray-300 dark:border-gray-600 text-sm"
+                    className="flex-grow bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-2 rounded border border-gray-300 dark:border-gray-600 text-sm focus:border-blue-500 outline-none"
                     placeholder="Tambah opsi..."
                   />
                   <button
                     type="button"
                     onClick={handleAddOption}
-                    className="p-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    className="p-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
                   >
                     <Plus size={20} />
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2 max-h-[100px] overflow-y-auto">
                   {dropdownOptions.map((opt, i) => (
                     <span
                       key={i}
-                      className="flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs"
+                      className="flex items-center bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs"
                     >
                       {opt}
                       <button
                         type="button"
                         onClick={() => removeOption(i)}
-                        className="ml-1 text-blue-500 hover:text-red-500"
+                        className="ml-1 text-blue-500 hover:text-red-500 transition-colors font-bold text-sm"
                       >
                         &times;
                       </button>
@@ -188,7 +274,7 @@ export const CustomFieldManagementModal = ({
             <div className="flex space-x-2 pt-4">
               <button
                 type="submit"
-                className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium"
               >
                 {editingField ? "Simpan Perubahan" : "Tambah Field"}
               </button>
@@ -196,7 +282,7 @@ export const CustomFieldManagementModal = ({
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-sm"
                 >
                   Batal
                 </button>
@@ -218,7 +304,7 @@ export const CustomFieldManagementModal = ({
                 customFields.map((f) => (
                   <div
                     key={f.id}
-                    className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex justify-between items-center group"
+                    className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex justify-between items-center group transition-all"
                   >
                     <div>
                       <span className="font-semibold text-gray-900 dark:text-white block">
@@ -235,6 +321,7 @@ export const CustomFieldManagementModal = ({
                         type="button"
                         onClick={() => handleEdit(f)}
                         className="p-1.5 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 rounded"
+                        title="Edit Field"
                       >
                         <Edit3 size={16} />
                       </button>
@@ -242,6 +329,7 @@ export const CustomFieldManagementModal = ({
                         type="button"
                         onClick={() => openDeleteModal("custom_field", f)}
                         className="p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                        title="Hapus Field"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -253,10 +341,10 @@ export const CustomFieldManagementModal = ({
           </div>
         </div>
 
-        <div className="flex justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium"
+            className="px-6 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium text-sm"
           >
             Tutup
           </button>

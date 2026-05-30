@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Camera,
   Image as ImageIcon,
@@ -20,6 +20,51 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
   // Lift image hooks to the top level
   const beforeImageUrl = useLocalImage(trade?.screenshotBeforeId);
   const afterImageUrl = useLocalImage(trade?.screenshotAfterId);
+
+  // Touch Drag to Dismiss Logic
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    const currentY = e.touches[0].clientY;
+    const diffY = currentY - touchStartY.current;
+    if (diffY > 0) {
+      setTranslateY(diffY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (translateY > 120) {
+      onClose();
+    } else {
+      setTranslateY(0);
+    }
+  };
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  // Backdrop click handler
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   // Construct dynamic list of images that actually exist
   const availableImages = useMemo(() => {
@@ -102,20 +147,59 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
           activeProfileName={activeProfileName}
         />
       )}
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-start mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
+      <div 
+        onClick={handleBackdropClick}
+        className="fixed inset-0 bg-slate-950/45 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+      >
+        <style>{`
+          @keyframes modalSpringIn {
+            0% {
+              opacity: 0;
+              transform: scale(0.93) translateY(30px);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) translateY(0);
+            }
+          }
+          .animate-modalSpringIn {
+            animation: modalSpringIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          }
+        `}</style>
+        <div 
+          className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-modalSpringIn relative border border-gray-100 dark:border-gray-700/50"
+          style={{
+            transform: translateY > 0 ? `translateY(${translateY}px)` : undefined,
+            transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+          }}
+        >
+          {/* Swipe drag handle indicator for mobile */}
+          <div 
+            className="md:hidden flex justify-center pb-3 cursor-grab active:cursor-grabbing select-none"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+          </div>
+
+          <div 
+            className="flex justify-between items-start mb-6 border-b border-gray-200 dark:border-gray-700 pb-4 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
               {typeIcon} <span className="ml-2">{trade.pair}</span>
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light leading-none p-1"
             >
               &times;
             </button>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto flex-grow pr-1">
             <div className="space-y-4 lg:col-span-1">
               <div className="flex items-center space-x-4 border-b border-gray-200 dark:border-gray-700 pb-2">
                 <Clock size={20} className="text-gray-400 dark:text-gray-500" />
@@ -125,7 +209,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-xs">
                     P&L
                   </p>
                   <p className={`text-2xl font-extrabold ${pnlColor}`}>
@@ -133,7 +217,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                   </p>
                 </div>
                 <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-xs">
                     Lot Size
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-white">
@@ -142,7 +226,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                 </div>
               </div>
               <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-xs">
                   Risk/Reward Ratio
                 </p>
                 <p className="text-xl font-bold text-gray-900 dark:text-white">
@@ -152,7 +236,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                 </p>
               </div>
               <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 text-xs">
                   Setup / Strategi
                 </p>
                 <p className="text-gray-800 dark:text-white font-medium">
@@ -163,7 +247,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                 trade.takeProfit > 0 ||
                 trade.stopLoss > 0) && (
                 <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg space-y-2">
-                  <h4 className="text-sm text-gray-500 dark:text-gray-400 mb-2 font-semibold">
+                  <h4 className="text-sm text-gray-500 dark:text-gray-400 mb-2 font-semibold text-xs">
                     Detail Harga
                   </h4>
                   <div className="flex justify-between text-sm">
@@ -200,7 +284,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
               )}
               {filledCustomFields.length > 0 && (
                 <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg space-y-2">
-                  <h4 className="text-sm text-gray-500 dark:text-gray-400 mb-2 font-semibold border-b border-gray-300 dark:border-gray-600 pb-2">
+                  <h4 className="text-sm text-gray-500 dark:text-gray-400 mb-2 font-semibold border-b border-gray-300 dark:border-gray-600 pb-2 text-xs">
                     Field Tambahan
                   </h4>
                   {filledCustomFields.map((field) => (
@@ -251,7 +335,7 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                 />
               </div>
               <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 text-xs">
                   Catatan Trade
                 </p>
                 <p className="text-gray-800 dark:text-white text-sm whitespace-pre-wrap">
@@ -260,17 +344,17 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
               </div>
             </div>
           </div>
-          <div className="flex justify-between items-center mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="flex justify-between items-center mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 flex-shrink-0">
             <button
               onClick={() => setShowShareModal(true)}
-              className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg hover:shadow-[0_0_12px_rgba(139,92,246,0.4)] active:scale-95 transition-all flex items-center gap-2 font-medium"
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg hover:shadow-[0_0_12px_rgba(139,92,246,0.4)] active:scale-95 transition-all flex items-center gap-2 font-medium text-sm"
             >
               <Share2 size={18} />
               Bagikan Trade
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium text-sm"
             >
               Tutup
             </button>

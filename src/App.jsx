@@ -1344,6 +1344,7 @@ function App() {
               setIsGoalModalVisible(false);
               refreshAllData(activeProfile.id);
             }}
+            onRefresh={() => refreshAllData(activeProfile.id)}
             currentGoal={goalSettings}
             currency={activeProfile?.currency}
           />
@@ -1356,6 +1357,7 @@ function App() {
               setIsTransactionModalVisible(false);
               refreshAllData(activeProfile.id);
             }}
+            onRefresh={() => refreshAllData(activeProfile.id)}
             openDeleteModal={openDeleteModal}
             currency={activeProfile?.currency}
           />
@@ -1368,6 +1370,7 @@ function App() {
               setIsPairModalVisible(false);
               refreshAllData(activeProfile.id);
             }}
+            onRefresh={() => refreshAllData(activeProfile.id)}
             pairs={pairs}
             openDeleteModal={openDeleteModal}
           />
@@ -1380,6 +1383,7 @@ function App() {
               setIsTemplateModalVisible(false);
               refreshAllData(activeProfile.id);
             }}
+            onRefresh={() => refreshAllData(activeProfile.id)}
             templates={templates}
             customFields={customFields}
             strategies={strategies}
@@ -1394,6 +1398,7 @@ function App() {
               setIsCustomFieldModalVisible(false);
               refreshAllData(activeProfile.id);
             }}
+            onRefresh={() => refreshAllData(activeProfile.id)}
             customFields={customFields}
             openDeleteModal={openDeleteModal}
           />
@@ -1535,8 +1540,8 @@ function App() {
                       <button
                         onClick={() => setChartType("balance")}
                         className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "balance"
-                            ? "bg-blue-600 text-white shadow"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                          ? "bg-blue-600 text-white shadow"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
                           }`}
                       >
                         Grafik Saldo
@@ -1544,8 +1549,8 @@ function App() {
                       <button
                         onClick={() => setChartType("pnl")}
                         className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "pnl"
-                            ? "bg-blue-600 text-white shadow"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                          ? "bg-blue-600 text-white shadow"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
                           }`}
                       >
                         Grafik P&L

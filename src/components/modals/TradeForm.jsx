@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Save, UploadCloud, Camera, Edit3 } from "lucide-react";
 import { useLocalImage } from "../../hooks/useLocalImage";
 import { toDateTimeLocalInput } from "../../utils/formatters";
@@ -43,6 +43,51 @@ export const TradeForm = ({
 
   const existingBeforeImageUrl = useLocalImage(formData.screenshotBeforeId);
   const existingAfterImageUrl = useLocalImage(formData.screenshotAfterId);
+
+  // Touch Drag / Swipe-down to Dismiss Logic (Native Bottom Sheet Feel)
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    const currentY = e.touches[0].clientY;
+    const diffY = currentY - touchStartY.current;
+    if (diffY > 0) {
+      setTranslateY(diffY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (translateY > 120) {
+      onCancelEdit();
+    } else {
+      setTranslateY(0);
+    }
+  };
+
+  // Keyboard Escape listener for pro UX accessibility
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onCancelEdit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancelEdit]);
+
+  // Click Outside Backdrop Handler
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onCancelEdit();
+    }
+  };
 
   useEffect(() => {
     let dataToEdit = editingTrade
@@ -266,14 +311,60 @@ export const TradeForm = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn">
+    <div 
+      onClick={handleBackdropClick}
+      className="fixed inset-0 bg-slate-950/45 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+    >
+      <style>{`
+        @keyframes modalSpringIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.93) translateY(30px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        .animate-modalSpringIn {
+          animation: modalSpringIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+      `}</style>
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-modalSpringIn relative border border-gray-100 dark:border-gray-700/50"
+        style={{
+          transform: translateY > 0 ? `translateY(${translateY}px)` : undefined,
+          transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+        }}
       >
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-          {editingTrade ? "Edit Trade" : "Tambah Trade Baru"}
-        </h2>
+        {/* Swipe indicator drag handle for mobile screens */}
+        <div 
+          className="md:hidden flex justify-center pb-3 cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+        </div>
+
+        <div 
+          className="flex justify-between items-center mb-6 flex-shrink-0 cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {editingTrade ? "Edit Trade" : "Tambah Trade Baru"}
+          </h2>
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light leading-none p-1"
+          >
+            &times;
+          </button>
+        </div>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             Pilih Template (Opsional)
