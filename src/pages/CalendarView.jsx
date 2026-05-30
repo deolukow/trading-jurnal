@@ -380,7 +380,7 @@ export const CalendarView = ({
   return (
     <div className="animate-fadeIn select-none">
       <div
-        className="bg-white/50 dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden touch-none"
+        className="bg-white/50 dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden touch-pan-y"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
