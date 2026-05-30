@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { TradeList } from "../components/common/TradeList";
 import { formatDate, formatCurrency } from "../utils/formatters";
@@ -14,6 +14,99 @@ export const CalendarView = ({
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
+
+  // Swipe month navigation states & refs
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const pointerId = useRef(null);
+  const isSwipeGesture = useRef(false);
+  const preventClickRef = useRef(false);
+
+  const handlePointerDown = (e) => {
+    // Only capture primary touch or left mouse click
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+
+    // Ignore interactive targets (select dropdowns, buttons)
+    const target = e.target;
+    if (
+      target.tagName === "SELECT" ||
+      target.tagName === "BUTTON" ||
+      target.closest("button") ||
+      target.closest("select")
+    ) {
+      return;
+    }
+
+    // Do NOT capture the pointer here. We will do it once a drag is confirmed.
+    pointerId.current = e.pointerId;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    setIsDragging(true);
+    setDragOffset(0);
+    isSwipeGesture.current = false;
+    preventClickRef.current = false;
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || pointerId.current !== e.pointerId) return;
+
+    const diffX = e.clientX - startX.current;
+    const diffY = e.clientY - startY.current;
+
+    // Detect horizontal swiping intent
+    if (!isSwipeGesture.current) {
+      if (Math.abs(diffX) > 15 || Math.abs(diffY) > 15) {
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+          isSwipeGesture.current = true;
+          preventClickRef.current = true;
+          // Capture the pointer NOW that we are certain it's a drag swipe!
+          try {
+            e.currentTarget.setPointerCapture(pointerId.current);
+          } catch (err) {}
+        } else {
+          // If vertical swipe dominates (e.g. page scrolling), cancel swipe
+          setIsDragging(false);
+          pointerId.current = null;
+        }
+      }
+    }
+
+    if (isSwipeGesture.current) {
+      setDragOffset(diffX);
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (!isDragging || pointerId.current !== e.pointerId) return;
+
+    try {
+      e.currentTarget.releasePointerCapture(pointerId.current);
+    } catch (err) {}
+
+    setIsDragging(false);
+    pointerId.current = null;
+
+    if (isSwipeGesture.current) {
+      const threshold = 100; // px to trigger month change
+      if (dragOffset > threshold) {
+        // Swipe Right -> Prev Month
+        setCurrentDate((p) => new Date(p.getFullYear(), p.getMonth() - 1, 1));
+      } else if (dragOffset < -threshold) {
+        // Swipe Left -> Next Month
+        setCurrentDate((p) => new Date(p.getFullYear(), p.getMonth() + 1, 1));
+      }
+    }
+
+    // Delayed reset to ensure tap events do not register click actions instantly
+    setTimeout(() => {
+      preventClickRef.current = false;
+    }, 50);
+
+    setDragOffset(0);
+    isSwipeGesture.current = false;
+  };
 
   const tradesByDate = useMemo(() => {
     const map = new Map();
@@ -49,6 +142,7 @@ export const CalendarView = ({
   }, [tradesByDate, currentDate]);
 
   const handleDayClick = (day) => {
+    if (preventClickRef.current) return;
     const dayStr = formatDate(day);
     if (tradesByDate.has(dayStr)) {
       setSelectedDate(day);
@@ -284,16 +378,29 @@ export const CalendarView = ({
   }, [selectedDate, tradesByDate]);
 
   return (
-    <div className="animate-fadeIn">
-      <div className="bg-white/50 dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-        {renderHeader()}
-        <div className="grid grid-cols-8 text-center font-semibold text-gray-500 dark:text-gray-400 text-xs px-2 pb-2">
-          {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((day) => (
-            <div key={day}>{day}</div>
-          ))}
-          <div className="text-blue-500 dark:text-blue-400">Mingguan</div>
+    <div className="animate-fadeIn select-none">
+      <div
+        className="bg-white/50 dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+        <div
+          style={{
+            transform: `translateX(${dragOffset}px)`,
+            transition: isDragging ? "none" : "transform 0.4s cubic-bezier(0.2, 0.8, 0.25, 1)",
+          }}
+        >
+          {renderHeader()}
+          <div className="grid grid-cols-8 text-center font-semibold text-gray-500 dark:text-gray-400 text-xs px-2 pb-2">
+            {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((day) => (
+              <div key={day}>{day}</div>
+            ))}
+            <div className="text-blue-500 dark:text-blue-400">Mingguan</div>
+          </div>
+          {renderCells()}
         </div>
-        {renderCells()}
       </div>
       {selectedDate && selectedTrades.length > 0 && (
         <TradeList
