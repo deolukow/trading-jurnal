@@ -67,12 +67,17 @@
 }
 
 /* Smooth active state transitions */
-button, select, input, textarea {
+button,
+select,
+input,
+textarea {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Focus and input glows */
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.4);
   border-color: #8b5cf6 !important;
 }
@@ -83,6 +88,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* Glow highlight for violet brand accents */
-.text-blue-500, .text-blue-400 {
+.text-blue-500,
+.text-blue-400 {
   text-shadow: 0 0 8px rgba(167, 139, 250, 0.3);
 }
