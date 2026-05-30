@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./config/firebase";
@@ -37,6 +37,8 @@ import {
   Menu,
   LogOut,
   Share2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 // modular components
@@ -123,6 +125,146 @@ function App() {
   const [selectedYear, setSelectedYear] = useState(
     String(new Date().getFullYear()),
   );
+
+  // --- STATES & REFS FOR CUSTOMIZABLE LAYOUT ---
+  const [isLayoutEditMode, setIsLayoutEditMode] = useState(false);
+  const [layoutOrder, setLayoutOrder] = useState(["goal", "stats", "chart", "fields", "trades"]);
+  const longPressTimeout = useRef(null);
+  const isPressing = useRef(false);
+
+  // Load layout configuration per profile
+  useEffect(() => {
+    if (activeProfile) {
+      const savedLayout = localStorage.getItem(`dashboard_layout_${activeProfile.id}`);
+      if (savedLayout) {
+        try {
+          const parsed = JSON.parse(savedLayout);
+          const required = ["goal", "stats", "chart", "fields", "trades"];
+          const filtered = parsed.filter((item) => required.includes(item));
+          const missing = required.filter((item) => !filtered.includes(item));
+          setLayoutOrder([...filtered, ...missing]);
+        } catch (e) {
+          setLayoutOrder(["goal", "stats", "chart", "fields", "trades"]);
+        }
+      } else {
+        setLayoutOrder(["goal", "stats", "chart", "fields", "trades"]);
+      }
+    } else {
+      setLayoutOrder(["goal", "stats", "chart", "fields", "trades"]);
+    }
+  }, [activeProfile]);
+
+  // Swapping handler
+  const moveLayoutSection = (sectionId, direction) => {
+    const currentIndex = layoutOrder.indexOf(sectionId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= layoutOrder.length) return;
+
+    const newLayoutOrder = [...layoutOrder];
+    const temp = newLayoutOrder[currentIndex];
+    newLayoutOrder[currentIndex] = newLayoutOrder[newIndex];
+    newLayoutOrder[newIndex] = temp;
+
+    setLayoutOrder(newLayoutOrder);
+
+    if (activeProfile) {
+      localStorage.setItem(
+        `dashboard_layout_${activeProfile.id}`,
+        JSON.stringify(newLayoutOrder),
+      );
+    }
+  };
+
+  // Long press event handlers
+  const handleLongPressStart = (e) => {
+    if (isLayoutEditMode) return;
+
+    const targetTag = e.target.tagName.toLowerCase();
+    if (
+      targetTag === "button" ||
+      targetTag === "input" ||
+      targetTag === "select" ||
+      targetTag === "a" ||
+      targetTag === "textarea" ||
+      e.target.closest("button") ||
+      e.target.closest("a") ||
+      e.target.closest(".interactive-element")
+    ) {
+      return;
+    }
+
+    isPressing.current = true;
+    longPressTimeout.current = setTimeout(() => {
+      if (isPressing.current) {
+        setIsLayoutEditMode(true);
+        showToast("Mode Edit Tata Letak Aktif! Gunakan panah untuk menyusun.", "info");
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+      }
+    }, 800);
+  };
+
+  const handleLongPressEnd = () => {
+    isPressing.current = false;
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+    }
+  };
+
+  const handleLongPressMove = () => {
+    isPressing.current = false;
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+    }
+  };
+
+  // Visual layout controller overlay
+  const renderLayoutControls = (sectionId) => {
+    const currentIndex = layoutOrder.indexOf(sectionId);
+    const isFirst = currentIndex === 0;
+    const isLast = currentIndex === layoutOrder.length - 1;
+
+    return (
+      <div className="absolute inset-0 bg-blue-600/10 backdrop-blur-[1px] border-2 border-blue-500 rounded-xl z-20 flex items-center justify-center gap-4 transition-all animate-fadeIn">
+        <div className="bg-gray-900/90 border border-gray-700/80 px-4 py-3 rounded-xl flex items-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              moveLayoutSection(sectionId, "up");
+            }}
+            disabled={isFirst}
+            className={`p-2.5 rounded-lg border flex items-center justify-center transition-all ${isFirst
+                ? "bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+              }`}
+            title="Pindahkan ke Atas"
+          >
+            <ArrowUp size={18} />
+          </button>
+          <span className="text-xs font-bold text-gray-200 uppercase tracking-wide px-1">
+            Tata Letak
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              moveLayoutSection(sectionId, "down");
+            }}
+            disabled={isLast}
+            className={`p-2.5 rounded-lg border flex items-center justify-center transition-all ${isLast
+                ? "bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+              }`}
+            title="Pindahkan ke Bawah"
+          >
+            <ArrowDown size={18} />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const periods = useMemo(
     () => [
@@ -1520,89 +1662,192 @@ function App() {
                   />
                 )}
 
-                <GoalProgress
-                  goal={goalSettings}
-                  currentPnl={performanceStats.netPnl}
-                  period={activePeriod}
-                  currency={activeProfile?.currency}
-                />
-                {activePeriod === "daily" && (
-                  <DailyGoalProgress
-                    goal={goalSettings}
-                    currentPnl={performanceStats.netPnl}
-                    currency={activeProfile?.currency}
-                  />
-                )}
-                <StatisticsDashboard
-                  stats={performanceStats}
-                  currency={activeProfile?.currency}
-                />
+                {layoutOrder.map((sectionId) => {
+                  if (sectionId === "goal") {
+                    return (
+                      <div
+                        key="goal"
+                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
+                        onMouseDown={handleLongPressStart}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={handleLongPressStart}
+                        onTouchEnd={handleLongPressEnd}
+                        onTouchMove={handleLongPressMove}
+                      >
+                        {isLayoutEditMode && renderLayoutControls("goal")}
+                        <GoalProgress
+                          goal={goalSettings}
+                          currentPnl={performanceStats.netPnl}
+                          period={activePeriod}
+                          currency={activeProfile?.currency}
+                        />
+                        {activePeriod === "daily" && (
+                          <DailyGoalProgress
+                            goal={goalSettings}
+                            currentPnl={performanceStats.netPnl}
+                            currency={activeProfile?.currency}
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+                  if (sectionId === "stats") {
+                    return (
+                      <div
+                        key="stats"
+                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
+                        onMouseDown={handleLongPressStart}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={handleLongPressStart}
+                        onTouchEnd={handleLongPressEnd}
+                        onTouchMove={handleLongPressMove}
+                      >
+                        {isLayoutEditMode && renderLayoutControls("stats")}
+                        <StatisticsDashboard
+                          stats={performanceStats}
+                          currency={activeProfile?.currency}
+                        />
+                      </div>
+                    );
+                  }
+                  if (sectionId === "chart") {
+                    return (
+                      <div
+                        key="chart"
+                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
+                        onMouseDown={handleLongPressStart}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={handleLongPressStart}
+                        onTouchEnd={handleLongPressEnd}
+                        onTouchMove={handleLongPressMove}
+                      >
+                        {isLayoutEditMode && renderLayoutControls("chart")}
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg animate-fadeIn">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 sm:mb-0">
+                              {chartType === "balance"
+                                ? "Grafik Saldo Akun"
+                                : "Grafik P&L Kumulatif"}
+                            </h3>
+                            <div className="flex space-x-1 p-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg">
+                              <button
+                                onClick={() => setChartType("balance")}
+                                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "balance"
+                                  ? "bg-blue-600 text-white shadow font-semibold"
+                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                  }`}
+                              >
+                                Grafik Saldo
+                              </button>
+                              <button
+                                onClick={() => setChartType("pnl")}
+                                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "pnl"
+                                  ? "bg-blue-600 text-white shadow font-semibold"
+                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                  }`}
+                              >
+                                Grafik P&L
+                              </button>
+                            </div>
+                          </div>
+                          <div className="h-80">
+                            <AccountBalanceChart
+                              data={accountStats.chartData}
+                              period={activePeriod}
+                              currency={activeProfile?.currency}
+                              chartType={chartType}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (sectionId === "fields") {
+                    return (
+                      <div
+                        key="fields"
+                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
+                        onMouseDown={handleLongPressStart}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={handleLongPressStart}
+                        onTouchEnd={handleLongPressEnd}
+                        onTouchMove={handleLongPressMove}
+                      >
+                        {isLayoutEditMode && renderLayoutControls("fields")}
+                        <FieldPerformanceTable
+                          trades={filteredTrades}
+                          customFields={customFields}
+                        />
+                      </div>
+                    );
+                  }
+                  if (sectionId === "trades") {
+                    return (
+                      <div
+                        key="trades"
+                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
+                        onMouseDown={handleLongPressStart}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={handleLongPressStart}
+                        onTouchEnd={handleLongPressEnd}
+                        onTouchMove={handleLongPressMove}
+                      >
+                        {isLayoutEditMode && renderLayoutControls("trades")}
+                        {activePeriod === "yearly" ? (
+                          <YearlySummary
+                            trades={filteredTrades}
+                            currency={activeProfile?.currency}
+                            year={selectedYear}
+                          />
+                        ) : (
+                          <TradeList
+                            trades={sortedTrades}
+                            onView={handleShowTradeDetail}
+                            onEdit={(t) => {
+                              setEditingTrade(t);
+                              setIsTradeFormVisible(true);
+                            }}
+                            onDelete={(type, data) => openDeleteModal(type, data)}
+                            title={`Riwayat Trade (${getPeriodLabel()})`}
+                            requestSort={requestSort}
+                            sortConfig={sortConfig}
+                            customFields={customFields}
+                            currency={activeProfile?.currency}
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
 
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg mb-6 animate-fadeIn">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 sm:mb-0">
-                      {chartType === "balance"
-                        ? "Grafik Saldo Akun"
-                        : "Grafik P&L Kumulatif"}
-                    </h3>
-                    <div className="flex space-x-1 p-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg">
+                {/* Floating Bottom Confirmation Panel */}
+                {isLayoutEditMode && (
+                  <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-slideUp">
+                    <div className="bg-gray-900/95 border border-blue-500/30 backdrop-blur-md px-6 py-3.5 rounded-full flex items-center gap-4 shadow-[0_10px_30px_rgba(59,130,246,0.3)]">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping"></span>
+                        <span className="text-sm font-semibold text-gray-200">
+                          Mode Edit Tata Letak Aktif
+                        </span>
+                      </div>
+                      <div className="h-4 w-px bg-gray-700"></div>
                       <button
-                        onClick={() => setChartType("balance")}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "balance"
-                          ? "bg-blue-600 text-white shadow"
-                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                          }`}
+                        onClick={() => {
+                          setIsLayoutEditMode(false);
+                          showToast("Tata letak berhasil disimpan!", "success");
+                        }}
+                        className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
                       >
-                        Grafik Saldo
-                      </button>
-                      <button
-                        onClick={() => setChartType("pnl")}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "pnl"
-                          ? "bg-blue-600 text-white shadow"
-                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                          }`}
-                      >
-                        Grafik P&L
+                        Selesai
                       </button>
                     </div>
                   </div>
-                  <div className="h-80">
-                    <AccountBalanceChart
-                      data={accountStats.chartData}
-                      period={activePeriod}
-                      currency={activeProfile?.currency}
-                      chartType={chartType}
-                    />
-                  </div>
-                </div>
-
-                {/* --- TABEL PERFORMA FIELD BARU --- */}
-                <FieldPerformanceTable
-                  trades={filteredTrades}
-                  customFields={customFields}
-                />
-
-                {activePeriod === "yearly" ? (
-                  <YearlySummary
-                    trades={filteredTrades}
-                    currency={activeProfile?.currency}
-                    year={selectedYear}
-                  />
-                ) : (
-                  <TradeList
-                    trades={sortedTrades}
-                    onView={handleShowTradeDetail}
-                    onEdit={(t) => {
-                      setEditingTrade(t);
-                      setIsTradeFormVisible(true);
-                    }}
-                    onDelete={(type, data) => openDeleteModal(type, data)}
-                    title={`Riwayat Trade (${getPeriodLabel()})`}
-                    requestSort={requestSort}
-                    sortConfig={sortConfig}
-                    customFields={customFields}
-                    currency={activeProfile?.currency}
-                  />
                 )}
               </>
             )}
