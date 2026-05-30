@@ -39,6 +39,15 @@ import {
   Share2,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
+  Ratio,
+  Divide,
+  BarChartHorizontal,
+  Hash,
 } from "lucide-react";
 
 // modular components
@@ -68,6 +77,9 @@ import { DateRangePicker } from "./components/dashboard/DateRangePicker";
 import { YearSelector } from "./components/dashboard/YearSelector";
 import { FieldPerformanceTable } from "./components/dashboard/FieldPerformanceTable";
 import { ProfileSelector } from "./components/dashboard/ProfileSelector";
+import { StatCard } from "./components/dashboard/StatCard";
+import { GaugeChart } from "./components/dashboard/GaugeChart";
+import { RatioBar } from "./components/dashboard/RatioBar";
 
 import { LoginPage } from "./pages/LoginPage";
 import { StrategyPage } from "./pages/StrategyPage";
@@ -128,35 +140,119 @@ function App() {
 
   // --- STATES & REFS FOR CUSTOMIZABLE LAYOUT ---
   const [isLayoutEditMode, setIsLayoutEditMode] = useState(false);
-  const [layoutOrder, setLayoutOrder] = useState(["goal", "stats", "chart", "fields", "trades"]);
+  const [layoutOrder, setLayoutOrder] = useState([
+    { id: "widget_goal", w: 4, h: 1 },
+    { id: "widget_dailyGoal", w: 4, h: 1 },
+    { id: "stat_netPnl", w: 1, h: 1 },
+    { id: "stat_growth", w: 1, h: 1 },
+    { id: "stat_winRate", w: 1, h: 1 },
+    { id: "stat_bestTrade", w: 1, h: 1 },
+    { id: "stat_worstTrade", w: 1, h: 1 },
+    { id: "stat_avgRR", w: 1, h: 1 },
+    { id: "stat_streak", w: 1, h: 1 },
+    { id: "stat_profitFactor", w: 1, h: 1 },
+    { id: "stat_dayWinRate", w: 1, h: 1 },
+    { id: "stat_avgWinLoss", w: 1, h: 1 },
+    { id: "stat_totalLot", w: 1, h: 1 },
+    { id: "widget_chart", w: 4, h: 2 },
+    { id: "widget_fields", w: 4, h: 2 },
+    { id: "widget_trades", w: 4, h: 2 }
+  ]);
   const longPressTimeout = useRef(null);
   const isPressing = useRef(false);
 
-  // Load layout configuration per profile
+  // Load layout configuration per profile (with legacy conversion)
   useEffect(() => {
     if (activeProfile) {
       const savedLayout = localStorage.getItem(`dashboard_layout_${activeProfile.id}`);
+      const DEFAULT_LAYOUT = [
+        { id: "widget_goal", w: 4, h: 1 },
+        { id: "widget_dailyGoal", w: 4, h: 1 },
+        { id: "stat_netPnl", w: 1, h: 1 },
+        { id: "stat_growth", w: 1, h: 1 },
+        { id: "stat_winRate", w: 1, h: 1 },
+        { id: "stat_bestTrade", w: 1, h: 1 },
+        { id: "stat_worstTrade", w: 1, h: 1 },
+        { id: "stat_avgRR", w: 1, h: 1 },
+        { id: "stat_streak", w: 1, h: 1 },
+        { id: "stat_profitFactor", w: 1, h: 1 },
+        { id: "stat_dayWinRate", w: 1, h: 1 },
+        { id: "stat_avgWinLoss", w: 1, h: 1 },
+        { id: "stat_totalLot", w: 1, h: 1 },
+        { id: "widget_chart", w: 4, h: 2 },
+        { id: "widget_fields", w: 4, h: 2 },
+        { id: "widget_trades", w: 4, h: 2 }
+      ];
+
       if (savedLayout) {
         try {
-          const parsed = JSON.parse(savedLayout);
-          const required = ["goal", "stats", "chart", "fields", "trades"];
-          const filtered = parsed.filter((item) => required.includes(item));
-          const missing = required.filter((item) => !filtered.includes(item));
+          let parsed = JSON.parse(savedLayout);
+
+          // Defensive check: if parsed layout is a flat array of strings from the previous simple layout system
+          if (parsed.length > 0 && typeof parsed[0] === "string") {
+            const mapped = [];
+            parsed.forEach(strId => {
+              if (strId === "goal") {
+                mapped.push({ id: "widget_goal", w: 4, h: 1 });
+                mapped.push({ id: "widget_dailyGoal", w: 4, h: 1 });
+              } else if (strId === "stats") {
+                mapped.push({ id: "stat_netPnl", w: 1, h: 1 });
+                mapped.push({ id: "stat_growth", w: 1, h: 1 });
+                mapped.push({ id: "stat_winRate", w: 1, h: 1 });
+                mapped.push({ id: "stat_bestTrade", w: 1, h: 1 });
+                mapped.push({ id: "stat_worstTrade", w: 1, h: 1 });
+                mapped.push({ id: "stat_avgRR", w: 1, h: 1 });
+                mapped.push({ id: "stat_streak", w: 1, h: 1 });
+                mapped.push({ id: "stat_profitFactor", w: 1, h: 1 });
+                mapped.push({ id: "stat_dayWinRate", w: 1, h: 1 });
+                mapped.push({ id: "stat_avgWinLoss", w: 1, h: 1 });
+                mapped.push({ id: "stat_totalLot", w: 1, h: 1 });
+              } else if (strId === "chart") {
+                mapped.push({ id: "widget_chart", w: 4, h: 2 });
+              } else if (strId === "fields") {
+                mapped.push({ id: "widget_fields", w: 4, h: 2 });
+              } else if (strId === "trades") {
+                mapped.push({ id: "widget_trades", w: 4, h: 2 });
+              }
+            });
+            parsed = mapped;
+          }
+
+          const parsedIds = parsed.map(item => item.id);
+          const filtered = parsed.filter(item => DEFAULT_LAYOUT.some(d => d.id === item.id));
+          const missing = DEFAULT_LAYOUT.filter(d => !parsedIds.includes(d.id));
           setLayoutOrder([...filtered, ...missing]);
         } catch (e) {
-          setLayoutOrder(["goal", "stats", "chart", "fields", "trades"]);
+          setLayoutOrder(DEFAULT_LAYOUT);
         }
       } else {
-        setLayoutOrder(["goal", "stats", "chart", "fields", "trades"]);
+        setLayoutOrder(DEFAULT_LAYOUT);
       }
     } else {
-      setLayoutOrder(["goal", "stats", "chart", "fields", "trades"]);
+      setLayoutOrder([
+        { id: "widget_goal", w: 4, h: 1 },
+        { id: "widget_dailyGoal", w: 4, h: 1 },
+        { id: "stat_netPnl", w: 1, h: 1 },
+        { id: "stat_growth", w: 1, h: 1 },
+        { id: "stat_winRate", w: 1, h: 1 },
+        { id: "stat_bestTrade", w: 1, h: 1 },
+        { id: "stat_worstTrade", w: 1, h: 1 },
+        { id: "stat_avgRR", w: 1, h: 1 },
+        { id: "stat_streak", w: 1, h: 1 },
+        { id: "stat_profitFactor", w: 1, h: 1 },
+        { id: "stat_dayWinRate", w: 1, h: 1 },
+        { id: "stat_avgWinLoss", w: 1, h: 1 },
+        { id: "stat_totalLot", w: 1, h: 1 },
+        { id: "widget_chart", w: 4, h: 2 },
+        { id: "widget_fields", w: 4, h: 2 },
+        { id: "widget_trades", w: 4, h: 2 }
+      ]);
     }
   }, [activeProfile]);
 
-  // Swapping handler
-  const moveLayoutSection = (sectionId, direction) => {
-    const currentIndex = layoutOrder.indexOf(sectionId);
+  // Reordering handler
+  const moveLayoutSection = (widgetId, direction) => {
+    const currentIndex = layoutOrder.findIndex(item => item.id === widgetId);
     if (currentIndex === -1) return;
 
     const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
@@ -166,6 +262,27 @@ function App() {
     const temp = newLayoutOrder[currentIndex];
     newLayoutOrder[currentIndex] = newLayoutOrder[newIndex];
     newLayoutOrder[newIndex] = temp;
+
+    setLayoutOrder(newLayoutOrder);
+
+    if (activeProfile) {
+      localStorage.setItem(
+        `dashboard_layout_${activeProfile.id}`,
+        JSON.stringify(newLayoutOrder),
+      );
+    }
+  };
+
+  // Dimensional resize handler
+  const resizeWidget = (widgetId, dim, amount) => {
+    const newLayoutOrder = layoutOrder.map(item => {
+      if (item.id === widgetId) {
+        const val = item[dim] || 1;
+        const newVal = Math.max(1, Math.min(4, val + amount));
+        return { ...item, [dim]: newVal };
+      }
+      return item;
+    });
 
     setLayoutOrder(newLayoutOrder);
 
@@ -199,7 +316,7 @@ function App() {
     longPressTimeout.current = setTimeout(() => {
       if (isPressing.current) {
         setIsLayoutEditMode(true);
-        showToast("Mode Edit Tata Letak Aktif! Gunakan panah untuk menyusun.", "info");
+        showToast("Mode Edit Tata Letak Aktif! Gunakan overlay untuk menyesuaikan.", "info");
         if (navigator.vibrate) {
           navigator.vibrate(50);
         }
@@ -221,46 +338,180 @@ function App() {
     }
   };
 
+  // Widget label mapping
+  const getWidgetTitle = (id) => {
+    switch (id) {
+      case "widget_goal": return "Goal Progress";
+      case "widget_dailyGoal": return "Daily Goal Progress";
+      case "stat_netPnl": return "Net P&L";
+      case "stat_growth": return "Account Growth";
+      case "stat_winRate": return "Trade Win %";
+      case "stat_bestTrade": return "Best Trade";
+      case "stat_worstTrade": return "Worst Trade";
+      case "stat_avgRR": return "Avg R:R Ratio";
+      case "stat_streak": return "Streak W/L";
+      case "stat_profitFactor": return "Profit Factor";
+      case "stat_dayWinRate": return "Day Win %";
+      case "stat_avgWinLoss": return "Avg Win/Loss";
+      case "stat_totalLot": return "Total Lot";
+      case "widget_chart": return "Grafik Performa";
+      case "widget_fields": return "Tabel Performa Field";
+      case "widget_trades": return "Riwayat Trade";
+      default: return "Widget";
+    }
+  };
+
+  const getColSpanClass = (w) => {
+    switch (w) {
+      case 1: return "md:col-span-1 col-span-1";
+      case 2: return "md:col-span-2 col-span-1";
+      case 3: return "md:col-span-3 col-span-1";
+      case 4: return "md:col-span-4 col-span-1";
+      default: return "md:col-span-1 col-span-1";
+    }
+  };
+
+  const getRowSpanClass = (h) => {
+    switch (h) {
+      case 1: return "row-span-1";
+      case 2: return "row-span-2";
+      case 3: return "row-span-3";
+      case 4: return "row-span-4";
+      default: return "row-span-1";
+    }
+  };
+
+  const getChartHeightClass = (h) => {
+    switch (h) {
+      case 1: return "h-40";
+      case 2: return "h-80";
+      case 3: return "h-[500px]";
+      case 4: return "h-[700px]";
+      default: return "h-80";
+    }
+  };
+
+
   // Visual layout controller overlay
-  const renderLayoutControls = (sectionId) => {
-    const currentIndex = layoutOrder.indexOf(sectionId);
+  const renderLayoutControls = (widget) => {
+    const currentIndex = layoutOrder.findIndex((item) => item.id === widget.id);
     const isFirst = currentIndex === 0;
     const isLast = currentIndex === layoutOrder.length - 1;
 
     return (
-      <div className="absolute inset-0 bg-blue-600/10 backdrop-blur-[1px] border-2 border-blue-500 rounded-xl z-20 flex items-center justify-center gap-4 transition-all animate-fadeIn">
-        <div className="bg-gray-900/90 border border-gray-700/80 px-4 py-3 rounded-xl flex items-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              moveLayoutSection(sectionId, "up");
-            }}
-            disabled={isFirst}
-            className={`p-2.5 rounded-lg border flex items-center justify-center transition-all ${isFirst
-                ? "bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-              }`}
-            title="Pindahkan ke Atas"
-          >
-            <ArrowUp size={18} />
-          </button>
-          <span className="text-xs font-bold text-gray-200 uppercase tracking-wide px-1">
-            Tata Letak
-          </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              moveLayoutSection(sectionId, "down");
-            }}
-            disabled={isLast}
-            className={`p-2.5 rounded-lg border flex items-center justify-center transition-all ${isLast
-                ? "bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-              }`}
-            title="Pindahkan ke Bawah"
-          >
-            <ArrowDown size={18} />
-          </button>
+      <div className="absolute inset-0 bg-blue-600/10 backdrop-blur-[1.5px] border-2 border-blue-500 rounded-xl z-20 flex items-center justify-center transition-all duration-200 animate-fadeIn">
+        <div className="bg-gray-950/95 border border-gray-800 px-4 py-3 rounded-2xl flex flex-col items-center gap-2.5 shadow-[0_10px_35px_rgba(59,130,246,0.45)] w-[85%] max-w-[200px] text-center select-none">
+          <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest truncate max-w-full">
+            {getWidgetTitle(widget.id)}
+          </div>
+
+          <div className="h-[1px] w-full bg-gray-800"></div>
+
+          {/* Reordering Row */}
+          <div className="flex items-center justify-between w-full">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                moveLayoutSection(widget.id, "up");
+              }}
+              disabled={isFirst}
+              className={`p-1.5 rounded-lg border flex items-center justify-center transition-all ${isFirst
+                  ? "bg-gray-900 text-gray-700 border-gray-800 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                }`}
+              title="Pindahkan ke Depan"
+            >
+              <ArrowLeft size={14} />
+            </button>
+            <span className="text-[10px] font-bold text-gray-300 uppercase">Urutan</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                moveLayoutSection(widget.id, "down");
+              }}
+              disabled={isLast}
+              className={`p-1.5 rounded-lg border flex items-center justify-center transition-all ${isLast
+                  ? "bg-gray-900 text-gray-700 border-gray-800 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                }`}
+              title="Pindahkan ke Belakang"
+            >
+              <ArrowRight size={14} />
+            </button>
+          </div>
+
+          <div className="h-[1px] w-full bg-gray-800"></div>
+
+          {/* Dimension Controls */}
+          <div className="flex flex-col gap-2 w-full text-[9px] font-semibold text-gray-400 uppercase">
+            {/* Width Selector */}
+            <div className="flex items-center justify-between w-full">
+              <span>Lebar</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resizeWidget(widget.id, "w", -1);
+                  }}
+                  disabled={widget.w <= 1}
+                  className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.w <= 1
+                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    }`}
+                >
+                  -
+                </button>
+                <span className="text-xs font-bold text-blue-400 w-4 text-center">{widget.w}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resizeWidget(widget.id, "w", 1);
+                  }}
+                  disabled={widget.w >= 4}
+                  className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.w >= 4
+                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    }`}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Height Selector */}
+            <div className="flex items-center justify-between w-full">
+              <span>Tinggi</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resizeWidget(widget.id, "h", -1);
+                  }}
+                  disabled={widget.h <= 1}
+                  className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.h <= 1
+                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    }`}
+                >
+                  -
+                </button>
+                <span className="text-xs font-bold text-blue-400 w-4 text-center">{widget.h}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resizeWidget(widget.id, "h", 1);
+                  }}
+                  disabled={widget.h >= 4}
+                  className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.h >= 4
+                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    }`}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1662,169 +1913,512 @@ function App() {
                   />
                 )}
 
-                {layoutOrder.map((sectionId) => {
-                  if (sectionId === "goal") {
-                    return (
-                      <div
-                        key="goal"
-                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
-                        onMouseDown={handleLongPressStart}
-                        onMouseUp={handleLongPressEnd}
-                        onMouseLeave={handleLongPressEnd}
-                        onTouchStart={handleLongPressStart}
-                        onTouchEnd={handleLongPressEnd}
-                        onTouchMove={handleLongPressMove}
-                      >
-                        {isLayoutEditMode && renderLayoutControls("goal")}
-                        <GoalProgress
-                          goal={goalSettings}
-                          currentPnl={performanceStats.netPnl}
-                          period={activePeriod}
-                          currency={activeProfile?.currency}
-                        />
-                        {activePeriod === "daily" && (
-                          <DailyGoalProgress
-                            goal={goalSettings}
-                            currentPnl={performanceStats.netPnl}
-                            currency={activeProfile?.currency}
-                          />
-                        )}
-                      </div>
-                    );
-                  }
-                  if (sectionId === "stats") {
-                    return (
-                      <div
-                        key="stats"
-                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
-                        onMouseDown={handleLongPressStart}
-                        onMouseUp={handleLongPressEnd}
-                        onMouseLeave={handleLongPressEnd}
-                        onTouchStart={handleLongPressStart}
-                        onTouchEnd={handleLongPressEnd}
-                        onTouchMove={handleLongPressMove}
-                      >
-                        {isLayoutEditMode && renderLayoutControls("stats")}
-                        <StatisticsDashboard
-                          stats={performanceStats}
-                          currency={activeProfile?.currency}
-                        />
-                      </div>
-                    );
-                  }
-                  if (sectionId === "chart") {
-                    return (
-                      <div
-                        key="chart"
-                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
-                        onMouseDown={handleLongPressStart}
-                        onMouseUp={handleLongPressEnd}
-                        onMouseLeave={handleLongPressEnd}
-                        onTouchStart={handleLongPressStart}
-                        onTouchEnd={handleLongPressEnd}
-                        onTouchMove={handleLongPressMove}
-                      >
-                        {isLayoutEditMode && renderLayoutControls("chart")}
-                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg animate-fadeIn">
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 sm:mb-0">
-                              {chartType === "balance"
-                                ? "Grafik Saldo Akun"
-                                : "Grafik P&L Kumulatif"}
-                            </h3>
-                            <div className="flex space-x-1 p-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg">
-                              <button
-                                onClick={() => setChartType("balance")}
-                                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "balance"
-                                  ? "bg-blue-600 text-white shadow font-semibold"
-                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                                  }`}
-                              >
-                                Grafik Saldo
-                              </button>
-                              <button
-                                onClick={() => setChartType("pnl")}
-                                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "pnl"
-                                  ? "bg-blue-600 text-white shadow font-semibold"
-                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                                  }`}
-                              >
-                                Grafik P&L
-                              </button>
+                {(() => {
+                  const displayProfitFactor = performanceStats && isFinite(performanceStats.profitFactor)
+                    ? performanceStats.profitFactor.toFixed(2)
+                    : "∞";
+                  const displayAvgWinLossRatio = performanceStats && isFinite(performanceStats.avgWinLossRatio)
+                    ? performanceStats.avgWinLossRatio.toFixed(2)
+                    : "∞";
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-auto animate-fadeIn">
+                      {layoutOrder.map((widget) => {
+                        const colSpan = getColSpanClass(widget.w);
+                        const rowSpan = getRowSpanClass(widget.h);
+                        const editClasses = isLayoutEditMode
+                          ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle"
+                          : "";
+
+                        // Widget Goal Progress
+                        if (widget.id === "widget_goal") {
+                          return (
+                            <div
+                              key="widget_goal"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <GoalProgress
+                                goal={goalSettings}
+                                currentPnl={performanceStats.netPnl}
+                                period={activePeriod}
+                                currency={activeProfile?.currency}
+                              />
                             </div>
-                          </div>
-                          <div className="h-80">
-                            <AccountBalanceChart
-                              data={accountStats.chartData}
-                              period={activePeriod}
-                              currency={activeProfile?.currency}
-                              chartType={chartType}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  if (sectionId === "fields") {
-                    return (
-                      <div
-                        key="fields"
-                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
-                        onMouseDown={handleLongPressStart}
-                        onMouseUp={handleLongPressEnd}
-                        onMouseLeave={handleLongPressEnd}
-                        onTouchStart={handleLongPressStart}
-                        onTouchEnd={handleLongPressEnd}
-                        onTouchMove={handleLongPressMove}
-                      >
-                        {isLayoutEditMode && renderLayoutControls("fields")}
-                        <FieldPerformanceTable
-                          trades={filteredTrades}
-                          customFields={customFields}
-                        />
-                      </div>
-                    );
-                  }
-                  if (sectionId === "trades") {
-                    return (
-                      <div
-                        key="trades"
-                        className={`relative mb-6 transition-all duration-300 ${isLayoutEditMode ? "animate-wiggle cursor-grab active:cursor-grabbing animate-pulse-subtle" : ""}`}
-                        onMouseDown={handleLongPressStart}
-                        onMouseUp={handleLongPressEnd}
-                        onMouseLeave={handleLongPressEnd}
-                        onTouchStart={handleLongPressStart}
-                        onTouchEnd={handleLongPressEnd}
-                        onTouchMove={handleLongPressMove}
-                      >
-                        {isLayoutEditMode && renderLayoutControls("trades")}
-                        {activePeriod === "yearly" ? (
-                          <YearlySummary
-                            trades={filteredTrades}
-                            currency={activeProfile?.currency}
-                            year={selectedYear}
-                          />
-                        ) : (
-                          <TradeList
-                            trades={sortedTrades}
-                            onView={handleShowTradeDetail}
-                            onEdit={(t) => {
-                              setEditingTrade(t);
-                              setIsTradeFormVisible(true);
-                            }}
-                            onDelete={(type, data) => openDeleteModal(type, data)}
-                            title={`Riwayat Trade (${getPeriodLabel()})`}
-                            requestSort={requestSort}
-                            sortConfig={sortConfig}
-                            customFields={customFields}
-                            currency={activeProfile?.currency}
-                          />
-                        )}
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
+                          );
+                        }
+
+                        // Widget Daily Goal Progress
+                        if (widget.id === "widget_dailyGoal") {
+                          const isDailyGoalActive = activePeriod === "daily";
+                          if (!isDailyGoalActive && !isLayoutEditMode) return null;
+                          return (
+                            <div
+                              key="widget_dailyGoal"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              {isDailyGoalActive ? (
+                                <DailyGoalProgress
+                                  goal={goalSettings}
+                                  currentPnl={performanceStats.netPnl}
+                                  currency={activeProfile?.currency}
+                                />
+                              ) : (
+                                <div className="bg-gray-800/40 border border-gray-700/50 p-4 rounded-xl flex items-center justify-center min-h-[80px] h-full">
+                                  <span className="text-xs text-gray-500 font-semibold italic">
+                                    Target Harian (Hanya Tampil pada Periode Harian)
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        // Widget Chart
+                        if (widget.id === "widget_chart") {
+                          const chartHeight = getChartHeightClass(widget.h);
+                          return (
+                            <div
+                              key="widget_chart"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg animate-fadeIn h-full flex flex-col justify-between">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 sm:mb-0">
+                                    {chartType === "balance"
+                                      ? "Grafik Saldo Akun"
+                                      : "Grafik P&L Kumulatif"}
+                                  </h3>
+                                  <div className="flex space-x-1 p-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg">
+                                    <button
+                                      onClick={() => setChartType("balance")}
+                                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "balance"
+                                        ? "bg-blue-600 text-white shadow font-semibold"
+                                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                        }`}
+                                    >
+                                      Grafik Saldo
+                                    </button>
+                                    <button
+                                      onClick={() => setChartType("pnl")}
+                                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "pnl"
+                                        ? "bg-blue-600 text-white shadow font-semibold"
+                                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                                        }`}
+                                    >
+                                      Grafik P&L
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className={`flex-grow ${chartHeight}`}>
+                                  <AccountBalanceChart
+                                    data={accountStats.chartData}
+                                    period={activePeriod}
+                                    currency={activeProfile?.currency}
+                                    chartType={chartType}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // Widget Fields Table
+                        if (widget.id === "widget_fields") {
+                          return (
+                            <div
+                              key="widget_fields"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <div className="h-full">
+                                <FieldPerformanceTable
+                                  trades={filteredTrades}
+                                  customFields={customFields}
+                                />
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // Widget Trades List
+                        if (widget.id === "widget_trades") {
+                          return (
+                            <div
+                              key="widget_trades"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <div className="h-full">
+                                {activePeriod === "yearly" ? (
+                                  <YearlySummary
+                                    trades={filteredTrades}
+                                    currency={activeProfile?.currency}
+                                    year={selectedYear}
+                                  />
+                                ) : (
+                                  <TradeList
+                                    trades={sortedTrades}
+                                    onView={handleShowTradeDetail}
+                                    onEdit={(t) => {
+                                      setEditingTrade(t);
+                                      setIsTradeFormVisible(true);
+                                    }}
+                                    onDelete={(type, data) => openDeleteModal(type, data)}
+                                    title={`Riwayat Trade (${getPeriodLabel()})`}
+                                    requestSort={requestSort}
+                                    sortConfig={sortConfig}
+                                    customFields={customFields}
+                                    currency={activeProfile?.currency}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // --- INDIVIDUAL STATISTIC CARDS ---
+                        if (!performanceStats) return null;
+
+                        if (widget.id === "stat_netPnl") {
+                          return (
+                            <div
+                              key="stat_netPnl"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Net P&L"
+                                value={formatCurrency(performanceStats.netPnl, activeProfile?.currency)}
+                                icon={<DollarSign size={16} />}
+                                footer={
+                                  <span className={performanceStats.netPnl >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}>
+                                    {performanceStats.netPnl >= 0 ? "Profit" : "Loss"}
+                                  </span>
+                                }
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_growth") {
+                          return (
+                            <div
+                              key="stat_growth"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Account Growth"
+                                value={`${performanceStats.growthPercentage >= 0 ? "+" : ""}${performanceStats.growthPercentage.toFixed(2)}%`}
+                                icon={<TrendingUp size={16} className={performanceStats.growthPercentage >= 0 ? "text-green-400" : "text-red-400"} />}
+                                footer={
+                                  <span className={performanceStats.growthPercentage >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}>
+                                    {performanceStats.growthPercentage >= 0 ? "Pertumbuhan Positif" : "Pertumbuhan Negatif"}
+                                  </span>
+                                }
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_winRate") {
+                          return (
+                            <div
+                              key="stat_winRate"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Trade Win %"
+                                icon={<Target size={16} />}
+                                footer={
+                                  <span>
+                                    <span className="text-green-500 dark:text-green-400">{performanceStats.wins} menang</span>{" "}
+                                    /{" "}
+                                    <span className="text-red-500 dark:text-red-400">{performanceStats.losses} kalah</span>
+                                  </span>
+                                }
+                              >
+                                <GaugeChart value={performanceStats.tradeWinRate} />
+                              </StatCard>
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_bestTrade") {
+                          return (
+                            <div
+                              key="stat_bestTrade"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Best Trade"
+                                value={formatCurrency(performanceStats.bestTrade, activeProfile?.currency)}
+                                icon={<ArrowUpRight size={16} className="text-green-500" />}
+                                footer={<span className="text-gray-500">Profit Terbesar Periode Ini</span>}
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_worstTrade") {
+                          return (
+                            <div
+                              key="stat_worstTrade"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Worst Trade"
+                                value={formatCurrency(performanceStats.worstTrade, activeProfile?.currency)}
+                                icon={<ArrowDownRight size={16} className="text-red-500" />}
+                                footer={<span className="text-gray-500">Loss Terbesar Periode Ini</span>}
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_avgRR") {
+                          return (
+                            <div
+                              key="stat_avgRR"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Avg R:R Ratio"
+                                value={`${performanceStats.avgRiskReward.toFixed(2)}R`}
+                                icon={<Ratio size={16} />}
+                                footer={<span>Rata-rata Risk to Reward</span>}
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_streak") {
+                          return (
+                            <div
+                              key="stat_streak"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Streak W/L"
+                                icon={<Zap size={16} />}
+                                footer={<span>Kemenangan / Kekalahan beruntun</span>}
+                              >
+                                <div className="flex items-center justify-center space-x-6 text-center w-full">
+                                  <div>
+                                    <p className="text-3xl font-bold text-green-500 dark:text-green-400">{performanceStats.consecutiveWins}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Menang</p>
+                                  </div>
+                                  <div className="h-10 w-px bg-gray-200 dark:bg-gray-700"></div>
+                                  <div>
+                                    <p className="text-3xl font-bold text-red-500 dark:text-red-400">{performanceStats.consecutiveLosses}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Kalah</p>
+                                  </div>
+                                </div>
+                              </StatCard>
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_profitFactor") {
+                          return (
+                            <div
+                              key="stat_profitFactor"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Profit Factor"
+                                value={displayProfitFactor}
+                                icon={<Divide size={16} />}
+                                footer={
+                                  <div className="w-full flex flex-col items-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <span className="text-green-500 font-semibold">{formatCurrency(performanceStats.grossProfit, activeProfile?.currency)}</span>
+                                      <span className="text-gray-500">/</span>
+                                      <span className="text-red-500 font-semibold">{formatCurrency(performanceStats.grossLoss, activeProfile?.currency)}</span>
+                                    </div>
+                                  </div>
+                                }
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_dayWinRate") {
+                          return (
+                            <div
+                              key="stat_dayWinRate"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Day Win %"
+                                icon={<CalendarDays size={16} />}
+                                footer={
+                                  <span>
+                                    <span className="text-green-500 dark:text-green-400">{performanceStats.profitableDays} hari</span>{" "}
+                                    /{" "}
+                                    <span className="text-red-500 dark:text-red-400">{performanceStats.losingDays} hari</span>
+                                  </span>
+                                }
+                              >
+                                <GaugeChart value={performanceStats.dayWinRate} />
+                              </StatCard>
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_avgWinLoss") {
+                          return (
+                            <div
+                              key="stat_avgWinLoss"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Avg Win/Loss"
+                                icon={<BarChartHorizontal size={16} />}
+                                footer={
+                                  <div className="w-full flex flex-col items-center">
+                                    <RatioBar winValue={performanceStats.avgWin} lossValue={Math.abs(performanceStats.avgLoss)} />
+                                    <div className="w-full flex justify-between mt-1">
+                                      <span className="text-green-500 dark:text-green-400">{formatCurrency(performanceStats.avgWin, activeProfile?.currency)}</span>
+                                      <span className="text-red-500 dark:text-red-400">{formatCurrency(performanceStats.avgLoss, activeProfile?.currency)}</span>
+                                    </div>
+                                  </div>
+                                }
+                                value={displayAvgWinLossRatio}
+                              />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_totalLot") {
+                          return (
+                            <div
+                              key="stat_totalLot"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Total Lot Digunakan"
+                                value={formatLotSize(performanceStats.totalLotUsed)}
+                                icon={<Hash size={16} />}
+                                footer={<span>Volum Trading Akumulatif</span>}
+                              />
+                            </div>
+                          );
+                        }
+
+                        return null;
+                      })}
+                    </div>
+                  );
+                })()}
 
                 {/* Floating Bottom Confirmation Panel */}
                 {isLayoutEditMode && (

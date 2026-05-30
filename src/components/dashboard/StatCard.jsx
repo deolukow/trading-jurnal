@@ -1,7 +1,7 @@
 import React from "react";
 
-export const StatCard = ({ title, value, children, footer, icon }) => (
-  <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg flex flex-col justify-between min-h-[160px]">
+export const StatCard = ({ title, value, children, footer, icon, className = "" }) => (
+  <div className={`bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg flex flex-col justify-between min-h-[160px] h-full ${className}`}>
     <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm mb-2">
       {icon}
       <span className="ml-2">{title}</span>
@@ -21,3 +21,4 @@ export const StatCard = ({ title, value, children, footer, icon }) => (
 );
 
 export default StatCard;
+
