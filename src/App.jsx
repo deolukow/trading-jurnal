@@ -11,6 +11,7 @@ import {
   getAllItems,
   getItemsByProfileId,
   exportIndexedDB,
+  importIndexedDB,
 } from "./config/db";
 import {
   formatDate,
@@ -50,6 +51,8 @@ import {
   BarChartHorizontal,
   Hash,
   Cloud,
+  CloudUpload,
+  CloudDownload,
 } from "lucide-react";
 
 // modular components
@@ -140,6 +143,7 @@ function App() {
   const [selectedYear, setSelectedYear] = useState(
     String(new Date().getFullYear()),
   );
+  const [isDashboardSyncing, setIsDashboardSyncing] = useState(false);
 
   // Load Google Identity Services OAuth script
   useEffect(() => {
@@ -722,6 +726,133 @@ function App() {
       console.error("Gagal melakukan pencadangan latar belakang:", e);
     }
   }, [activeProfile]);
+
+  const handleDashboardBackup = async () => {
+    const token = localStorage.getItem("gdrive_sync_token");
+    if (!token) {
+      showToast("Silakan hubungkan Google Drive terlebih dahulu di menu Sinkronisasi Cloud.", "error");
+      return;
+    }
+    setIsDashboardSyncing(true);
+    showToast("Sedang mencadangkan data...", "info");
+    try {
+      const backupData = await exportIndexedDB();
+      const scanRes = await fetch(
+        "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      let fileId = null;
+      if (scanRes.ok) {
+        const data = await scanRes.json();
+        const backupFile = data.files.find(f => f.name === "trading_journal_backup.json");
+        fileId = backupFile?.id;
+      }
+      const fileMetadata = {
+        name: "trading_journal_backup.json",
+        parents: ["appDataFolder"]
+      };
+      const fileBlob = new Blob([JSON.stringify(backupData)], { type: "application/json" });
+      let uploadRes;
+      if (fileId) {
+        uploadRes = await fetch(
+          `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+          {
+            method: "PATCH",
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: fileBlob
+          }
+        );
+      } else {
+        const form = new FormData();
+        form.append("metadata", new Blob([JSON.stringify(fileMetadata)], { type: "application/json" }));
+        form.append("file", fileBlob);
+        uploadRes = await fetch(
+          "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: form
+          }
+        );
+      }
+      if (uploadRes.ok) {
+        const now = new Date().toLocaleString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+        if (activeProfile) {
+          localStorage.setItem(`gdrive_last_sync_${activeProfile.id}`, now);
+        }
+        showToast("Berhasil mencadangkan data ke cloud!", "success");
+      } else {
+        throw new Error();
+      }
+    } catch {
+      showToast("Gagal melakukan pencadangan data.", "error");
+    } finally {
+      setIsDashboardSyncing(false);
+    }
+  };
+
+  const handleDashboardRestore = async () => {
+    const token = localStorage.getItem("gdrive_sync_token");
+    if (!token) {
+      showToast("Silakan hubungkan Google Drive terlebih dahulu di menu Sinkronisasi Cloud.", "error");
+      return;
+    }
+    const confirmRestore = window.confirm(
+      "PERHATIAN! Mengimpor data cadangan akan menghapus seluruh data lokal Anda saat ini pada perangkat ini.\n\nApakah Anda yakin ingin melanjutkan?"
+    );
+    if (!confirmRestore) return;
+    setIsDashboardSyncing(true);
+    showToast("Mengunduh data cadangan dari cloud...", "info");
+    try {
+      const scanRes = await fetch(
+        "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!scanRes.ok) throw new Error();
+      const data = await scanRes.json();
+      const backupFile = data.files.find(f => f.name === "trading_journal_backup.json");
+      if (!backupFile) {
+        showToast("Tidak ditemukan file cadangan di Google Drive.", "error");
+        setIsDashboardSyncing(false);
+        return;
+      }
+      const downloadRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${backupFile.id}?alt=media`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (downloadRes.ok) {
+        const backupData = await downloadRes.json();
+        await importIndexedDB(backupData);
+        const now = new Date().toLocaleString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+        if (activeProfile) {
+          localStorage.setItem(`gdrive_last_sync_${activeProfile.id}`, now);
+          refreshAllData(activeProfile.id);
+        }
+        showToast("Pemulihan data sukses!", "success");
+      } else {
+        throw new Error();
+      }
+    } catch {
+      showToast("Gagal memulihkan data dari cloud.", "error");
+    } finally {
+      setIsDashboardSyncing(false);
+    }
+  };
 
   const refreshAllData = useCallback(async (profileId, shouldBackup = false) => {
     if (!profileId) {
@@ -2033,13 +2164,43 @@ function App() {
             </div>
             <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
               {activeView === "dashboard" && (
-                <button
-                  onClick={() => setShowDashboardShareModal(true)}
-                  className="p-3 bg-white dark:bg-gray-800 text-violet-500 hover:text-white hover:bg-violet-600 dark:hover:bg-violet-600 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(139,92,246,0.35)] active:scale-95"
-                  title="Bagikan Performa Dashboard"
-                >
-                  <Share2 size={18} />
-                </button>
+                <>
+                  {/* Google Drive Upload Shortcut */}
+                  <button
+                    onClick={handleDashboardBackup}
+                    disabled={isDashboardSyncing}
+                    className="p-3 bg-white dark:bg-gray-800 text-violet-500 hover:text-white hover:bg-violet-600 dark:hover:bg-violet-600 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(139,92,246,0.35)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Cadangkan Cepat ke Google Drive (Upload)"
+                  >
+                    {isDashboardSyncing ? (
+                      <div className="w-[18px] h-[18px] border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <CloudUpload size={18} />
+                    )}
+                  </button>
+
+                  {/* Google Drive Fetch/Restore Shortcut */}
+                  <button
+                    onClick={handleDashboardRestore}
+                    disabled={isDashboardSyncing}
+                    className="p-3 bg-white dark:bg-gray-800 text-blue-500 hover:text-white hover:bg-blue-600 dark:hover:bg-blue-600 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(59,130,246,0.35)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Unduh Cadangan dari Google Drive (Fetch)"
+                  >
+                    {isDashboardSyncing ? (
+                      <div className="w-[18px] h-[18px] border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <CloudDownload size={18} />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setShowDashboardShareModal(true)}
+                    className="p-3 bg-white dark:bg-gray-800 text-violet-500 hover:text-white hover:bg-violet-600 dark:hover:bg-violet-600 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(139,92,246,0.35)] active:scale-95"
+                    title="Bagikan Performa Dashboard"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                </>
               )}
               <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center border border-gray-200 dark:border-gray-700">
                 <div className="text-xs text-gray-500 dark:text-gray-400">
