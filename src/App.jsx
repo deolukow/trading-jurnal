@@ -433,6 +433,15 @@ function App() {
         case "strategy":
           storeName = "strategies";
           itemName = "Strategi";
+          if (data.imageIds && data.imageIds.length > 0) {
+            for (const imgId of data.imageIds) {
+              try {
+                await deleteItem("trade_images", imgId);
+              } catch (err) {
+                console.error("Gagal menghapus gambar strategi dari DB:", err);
+              }
+            }
+          }
           break;
         default:
           return;
