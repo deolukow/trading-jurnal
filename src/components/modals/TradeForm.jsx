@@ -149,15 +149,25 @@ export const TradeForm = ({
     if (templateId) {
       const template = templates.find((t) => t.id === templateId);
       if (template) {
+        // Salin customData secara defensif hanya untuk customFields yang aktif di sistem saat ini
+        const newCustomData = {};
+        customFields.forEach((field) => {
+          newCustomData[field.name] = (template.customData && template.customData[field.name]) || "";
+        });
+
         setFormData((prev) => ({
           ...prev,
           pair: template.pair || "",
           type: template.type || "long",
-          lotSize: String(template.lotSize || "0.01"),
-          pnl: String(template.pnl || "0"),
+          lotSize: String(template.lotSize ?? "0.01"),
+          pnl: String(template.pnl ?? "0"),
           setup: template.setup || "",
-          riskRewardRatio: String(template.riskRewardRatio || "0"),
-          notes: "",
+          riskRewardRatio: String(template.riskRewardRatio ?? "0"),
+          entryPrice: String(template.entryPrice ?? ""),
+          takeProfit: String(template.takeProfit ?? ""),
+          stopLoss: String(template.stopLoss ?? ""),
+          notes: template.notes ?? "",
+          customData: newCustomData,
           screenshotBeforeId: null,
           screenshotAfterId: null,
         }));

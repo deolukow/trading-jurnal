@@ -308,7 +308,7 @@ function App() {
     setToast({ message, type });
     setTimeout(() => setToast({ message: "", type: "" }), 3000);
   };
-  
+
   const handleShowTradeDetail = (trade) => {
     setViewingTrade(trade);
   };
@@ -387,6 +387,25 @@ function App() {
       }
 
       if (!activeProfile) return;
+
+      if (type === "custom_field") {
+        try {
+          const templatesToClean = templates.filter(
+            (t) => t.customData && t.customData.hasOwnProperty(data.name)
+          );
+          for (const t of templatesToClean) {
+            const updatedCustomData = { ...t.customData };
+            delete updatedCustomData[data.name];
+            await updateItem("templates", {
+              ...t,
+              customData: updatedCustomData,
+              updatedAt: new Date(),
+            });
+          }
+        } catch (err) {
+          console.error("Gagal membersihkan template dari field tambahan:", err);
+        }
+      }
 
       let storeName = "";
       let itemName = "";
@@ -1295,8 +1314,8 @@ function App() {
               trade={{
                 isDashboard: true,
                 pair: activeProfile?.name || "ALL PAIRS",
-                type: (initialBalance > 0 
-                  ? (performanceStats.netPnl / initialBalance) * 100 
+                type: (initialBalance > 0
+                  ? (performanceStats.netPnl / initialBalance) * 100
                   : 0).toFixed(1) + "%",
                 pnl: performanceStats.netPnl,
                 startDate: pDates.start,
@@ -1362,6 +1381,8 @@ function App() {
               refreshAllData(activeProfile.id);
             }}
             templates={templates}
+            customFields={customFields}
+            strategies={strategies}
             openDeleteModal={openDeleteModal}
           />
         )}
@@ -1513,21 +1534,19 @@ function App() {
                     <div className="flex space-x-1 p-1 bg-gray-200 dark:bg-gray-700/50 rounded-lg">
                       <button
                         onClick={() => setChartType("balance")}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                          chartType === "balance"
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "balance"
                             ? "bg-blue-600 text-white shadow"
                             : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                        }`}
+                          }`}
                       >
                         Grafik Saldo
                       </button>
                       <button
                         onClick={() => setChartType("pnl")}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                          chartType === "pnl"
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${chartType === "pnl"
                             ? "bg-blue-600 text-white shadow"
                             : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
-                        }`}
+                          }`}
                       >
                         Grafik P&L
                       </button>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Zap, Edit3, Trash2, Save } from "lucide-react";
 import { addItem, updateItem } from "../../config/db";
 
@@ -7,32 +7,103 @@ export const TemplateManagementModal = ({
   showToast,
   onClose,
   templates,
+  customFields = [],
+  strategies = [],
   openDeleteModal,
 }) => {
-  const defaultTemplate = {
-    name: "",
-    pair: "",
-    type: "long",
-    lotSize: "0.01",
-    setup: "",
-    pnl: "0",
-    riskRewardRatio: "0",
+  const getDefaultTemplate = () => {
+    const base = {
+      name: "",
+      pair: "",
+      type: "long",
+      lotSize: "0.01",
+      setup: "",
+      pnl: "0",
+      riskRewardRatio: "0",
+      entryPrice: "",
+      takeProfit: "",
+      stopLoss: "",
+      notes: "",
+      customData: {},
+    };
+    if (customFields && customFields.length > 0) {
+      customFields.forEach((field) => {
+        base.customData[field.name] = "";
+      });
+    }
+    return base;
   };
-  const [templateData, setTemplateData] = useState(defaultTemplate);
+
+  const [templateData, setTemplateData] = useState(() => getDefaultTemplate());
   const [editingTemplate, setEditingTemplate] = useState(null);
+
+  // Auto-calculate R:R Ratio in the template modal
+  useEffect(() => {
+    const entry = parseFloat(templateData.entryPrice);
+    const tp = parseFloat(templateData.takeProfit);
+    const sl = parseFloat(templateData.stopLoss);
+    const type = templateData.type;
+
+    if (entry > 0 && tp > 0 && sl > 0) {
+      let risk, reward;
+      if (type === "long") {
+        reward = tp - entry;
+        risk = entry - sl;
+      } else {
+        reward = entry - tp;
+        risk = sl - entry;
+      }
+
+      if (risk > 0 && reward > 0) {
+        const ratio = reward / risk;
+        setTemplateData((prev) => ({ ...prev, riskRewardRatio: ratio.toFixed(2) }));
+      } else {
+        setTemplateData((prev) => ({ ...prev, riskRewardRatio: "0" }));
+      }
+    }
+  }, [
+    templateData.entryPrice,
+    templateData.takeProfit,
+    templateData.stopLoss,
+    templateData.type,
+  ]);
 
   const handleTemplateChange = (e) => {
     const { name, value } = e.target;
     setTemplateData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleCustomFieldChange = (e) => {
+    const { name, value } = e.target;
+    setTemplateData((prev) => ({
+      ...prev,
+      customData: {
+        ...prev.customData,
+        [name]: value,
+      },
+    }));
+  };
+
   const handleEditClick = (template) => {
     setEditingTemplate(template);
+    const preparedCustomData = { ...(template.customData || {}) };
+    if (customFields && customFields.length > 0) {
+      customFields.forEach((field) => {
+        if (!preparedCustomData.hasOwnProperty(field.name)) {
+          preparedCustomData[field.name] = "";
+        }
+      });
+    }
     setTemplateData({
       ...template,
-      lotSize: String(template.lotSize),
-      pnl: String(template.pnl),
-      riskRewardRatio: String(template.riskRewardRatio || "0"),
+      lotSize: String(template.lotSize ?? "0.01"),
+      pnl: String(template.pnl ?? "0"),
+      riskRewardRatio: String(template.riskRewardRatio ?? "0"),
+      entryPrice: String(template.entryPrice ?? ""),
+      takeProfit: String(template.takeProfit ?? ""),
+      stopLoss: String(template.stopLoss ?? ""),
+      notes: template.notes ?? "",
+      customData: preparedCustomData,
     });
   };
 
@@ -43,6 +114,9 @@ export const TemplateManagementModal = ({
       lotSize: parseFloat(templateData.lotSize) || 0,
       pnl: parseFloat(templateData.pnl) || 0,
       riskRewardRatio: parseFloat(templateData.riskRewardRatio) || 0,
+      entryPrice: parseFloat(templateData.entryPrice) || 0,
+      takeProfit: parseFloat(templateData.takeProfit) || 0,
+      stopLoss: parseFloat(templateData.stopLoss) || 0,
     };
     if (!finalData.name.trim()) {
       showToast("Nama Template wajib diisi.", "error");
@@ -70,7 +144,7 @@ export const TemplateManagementModal = ({
           "success",
         );
       }
-      setTemplateData(defaultTemplate);
+      setTemplateData(getDefaultTemplate());
       setEditingTemplate(null);
     } catch (error) {
       showToast("Gagal menyimpan Template.", "error");
@@ -80,7 +154,7 @@ export const TemplateManagementModal = ({
 
   const handleCancelEdit = () => {
     setEditingTemplate(null);
-    setTemplateData(defaultTemplate);
+    setTemplateData(getDefaultTemplate());
   };
 
   return (
@@ -100,7 +174,7 @@ export const TemplateManagementModal = ({
         </div>
         <form
           onSubmit={handleSubmit}
-          className="flex-shrink-0 mb-6 p-4 bg-gray-100/50 dark:bg-gray-700/50 rounded-lg"
+          className="flex-shrink-0 mb-6 p-4 bg-gray-100/50 dark:bg-gray-700/50 rounded-lg max-h-[50vh] overflow-y-auto"
         >
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
             {editingTemplate
@@ -152,23 +226,108 @@ export const TemplateManagementModal = ({
               onChange={handleTemplateChange}
               className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-1"
             />
+            <select
+              name="setup"
+              value={templateData.setup || ""}
+              onChange={handleTemplateChange}
+              className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-2 border border-transparent focus:border-blue-500 outline-none"
+            >
+              <option value="">-- Pilih Setup Strategi --</option>
+              {strategies.map((strat) => (
+                <option key={strat.id} value={strat.title}>
+                  {strat.title} {strat.probability ? `(${strat.probability}%)` : ""}
+                </option>
+              ))}
+              {templateData.setup &&
+                !strategies.some((s) => s.title === templateData.setup) && (
+                  <option value={templateData.setup}>
+                    {templateData.setup} (Lama)
+                  </option>
+                )}
+            </select>
+            <input
+              type="number"
+              step="any"
+              name="entryPrice"
+              placeholder="Entry Price Default"
+              value={templateData.entryPrice}
+              onChange={handleTemplateChange}
+              className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-1"
+            />
+            <input
+              type="number"
+              step="any"
+              name="takeProfit"
+              placeholder="TP Default"
+              value={templateData.takeProfit}
+              onChange={handleTemplateChange}
+              className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-1"
+            />
+            <input
+              type="number"
+              step="any"
+              name="stopLoss"
+              placeholder="SL Default"
+              value={templateData.stopLoss}
+              onChange={handleTemplateChange}
+              className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-1"
+            />
             <input
               type="number"
               step="any"
               name="riskRewardRatio"
-              placeholder="R:R Ratio (e.g., 2)"
+              placeholder="R:R Ratio (Otomatis)"
               value={templateData.riskRewardRatio}
               onChange={handleTemplateChange}
-              className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-2"
+              className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-1"
             />
-            <input
-              type="text"
-              name="setup"
-              placeholder="Setup/Strategi Default"
-              value={templateData.setup}
+            <textarea
+              name="notes"
+              placeholder="Catatan Default..."
+              value={templateData.notes}
               onChange={handleTemplateChange}
+              rows="2"
               className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded col-span-2 md:col-span-4"
             />
+
+            {/* Render Custom Fields in Template Editor */}
+            {customFields && customFields.length > 0 && (
+              <div className="col-span-2 md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                <span className="col-span-1 md:col-span-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
+                  Field Tambahan Kustom Default
+                </span>
+                {customFields.map((field) => (
+                  <div key={field.id} className="flex flex-col">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      {field.name}
+                    </label>
+                    {field.type === "dropdown" ? (
+                      <select
+                        name={field.name}
+                        value={templateData.customData?.[field.name] || ""}
+                        onChange={handleCustomFieldChange}
+                        className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded border border-transparent focus:border-blue-500 outline-none text-sm"
+                      >
+                        <option value="">-- Pilih {field.name} --</option>
+                        {field.options.map((opt, i) => (
+                          <option key={i} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        name={field.name}
+                        value={templateData.customData?.[field.name] || ""}
+                        onChange={handleCustomFieldChange}
+                        placeholder={`Input default ${field.name}`}
+                        className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded border border-transparent focus:border-blue-500 outline-none text-sm"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex justify-end space-x-3 mt-4">
             {editingTemplate && (
@@ -203,16 +362,47 @@ export const TemplateManagementModal = ({
                 key={t.id}
                 className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex justify-between items-center transition-shadow hover:shadow-md hover:shadow-gray-700/50"
               >
-                <div className="flex flex-col text-sm">
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                <div className="flex flex-col text-sm max-w-[80%]">
+                  <span className="font-semibold text-gray-900 dark:text-white truncate">
                     {t.name}
                   </span>
-                  <span className="text-gray-500 dark:text-gray-400 text-xs">
-                    {t.pair || "-"} | {t.type} | Lot: {parseFloat(t.lotSize || 0).toFixed(2)} |
-                    R:R:{" "}
-                    {parseFloat(t.riskRewardRatio || 0) > 0
-                      ? `${t.riskRewardRatio}R`
-                      : "N/A"}
+                  <span className="text-gray-500 dark:text-gray-400 text-xs flex flex-wrap gap-x-1.5 gap-y-0.5">
+                    <span>{t.pair || "-"}</span>
+                    <span>•</span>
+                    <span className="capitalize">{t.type}</span>
+                    <span>•</span>
+                    <span>Lot: {parseFloat(t.lotSize || 0).toFixed(2)}</span>
+                    <span>•</span>
+                    <span>
+                      R:R:{" "}
+                      {parseFloat(t.riskRewardRatio || 0) > 0
+                        ? `${t.riskRewardRatio}R`
+                        : "N/A"}
+                    </span>
+                    {t.setup && (
+                      <>
+                        <span>•</span>
+                        <span className="truncate">Setup: {t.setup}</span>
+                      </>
+                    )}
+                    {t.entryPrice > 0 && (
+                      <>
+                        <span>•</span>
+                        <span>EP: {t.entryPrice}</span>
+                      </>
+                    )}
+                    {t.takeProfit > 0 && (
+                      <>
+                        <span>•</span>
+                        <span>TP: {t.takeProfit}</span>
+                      </>
+                    )}
+                    {t.stopLoss > 0 && (
+                      <>
+                        <span>•</span>
+                        <span>SL: {t.stopLoss}</span>
+                      </>
+                    )}
                   </span>
                 </div>
                 <div className="flex space-x-2">
