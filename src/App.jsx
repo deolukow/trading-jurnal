@@ -36,6 +36,7 @@ import {
   PlusCircle,
   Menu,
   LogOut,
+  Share2,
 } from "lucide-react";
 
 // modular components
@@ -53,6 +54,7 @@ import { ProfileManagementModal } from "./components/modals/ProfileManagementMod
 import { CustomFieldManagementModal } from "./components/modals/CustomFieldManagementModal";
 import { TemplateManagementModal } from "./components/modals/TemplateManagementModal";
 import { PairManagementModal } from "./components/modals/PairManagementModal";
+import { ShareCardModal } from "./components/modals/ShareCardModal";
 import { BalanceTransactionModal } from "./components/modals/BalanceTransactionModal";
 import { TradeForm } from "./components/modals/TradeForm";
 
@@ -93,6 +95,7 @@ function App() {
   const [isTradeFormVisible, setIsTradeFormVisible] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [viewingTrade, setViewingTrade] = useState(null);
+  const [showDashboardShareModal, setShowDashboardShareModal] = useState(false);
   const [isTransactionModalVisible, setIsTransactionModalVisible] =
     useState(false);
   const [isPairModalVisible, setIsPairModalVisible] = useState(false);
@@ -1226,8 +1229,75 @@ function App() {
             onClose={() => setViewingTrade(null)}
             customFields={customFields}
             currency={activeProfile?.currency}
+            activeProfileName={activeProfile?.name}
           />
         )}
+        {showDashboardShareModal && (() => {
+          const getPeriodDates = () => {
+            let start = new Date();
+            let end = new Date();
+
+            const formatDateStr = (date) => {
+              return date.toLocaleDateString("id-ID", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+              }).replace(/\//g, "-");
+            };
+
+            if (activePeriod === "daily") {
+              return { start: formatDateStr(start), end: formatDateStr(end) };
+            } else if (activePeriod === "weekly") {
+              const day = start.getDay();
+              const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+              const monday = new Date(start.setDate(diff));
+              const sunday = new Date(monday);
+              sunday.setDate(monday.getDate() + 6);
+              return { start: formatDateStr(monday), end: formatDateStr(sunday) };
+            } else if (activePeriod === "monthly") {
+              const firstDay = new Date(start.getFullYear(), start.getMonth(), 1);
+              const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+              return { start: formatDateStr(firstDay), end: formatDateStr(lastDay) };
+            } else if (activePeriod === "yearly") {
+              const firstDay = new Date(selectedYear, 0, 1);
+              const lastDay = new Date(selectedYear, 11, 31);
+              return { start: formatDateStr(firstDay), end: formatDateStr(lastDay) };
+            } else if (activePeriod === "custom") {
+              const startD = customStartDate ? new Date(customStartDate) : new Date();
+              const endD = customEndDate ? new Date(customEndDate) : new Date();
+              return { start: formatDateStr(startD), end: formatDateStr(endD) };
+            } else {
+              if (trades.length > 0) {
+                const sortedTrades = [...trades].sort((a, b) => new Date(a.tradeDate).getTime() - new Date(b.tradeDate).getTime());
+                const first = new Date(sortedTrades[0].tradeDate);
+                const last = new Date(sortedTrades[sortedTrades.length - 1].tradeDate);
+                return { start: formatDateStr(first), end: formatDateStr(last) };
+              }
+              return { start: formatDateStr(start), end: formatDateStr(end) };
+            }
+          };
+
+          const pDates = getPeriodDates();
+
+          return (
+            <ShareCardModal
+              trade={{
+                isDashboard: true,
+                pair: activeProfile?.name || "ALL PAIRS",
+                type: (initialBalance > 0 
+                  ? (performanceStats.netPnl / initialBalance) * 100 
+                  : 0).toFixed(1) + "%",
+                pnl: performanceStats.netPnl,
+                startDate: pDates.start,
+                endDate: pDates.end,
+                tradeDate: new Date(),
+              }}
+              onClose={() => setShowDashboardShareModal(false)}
+              currency={activeProfile?.currency}
+              activeProfileName={activeProfile?.name}
+            />
+          );
+        })()}
         {activeProfile && isCalculatorVisible && (
           <LotSizeCalculatorModal
             isOpen={isCalculatorVisible}
@@ -1344,6 +1414,15 @@ function App() {
               </h2>
             </div>
             <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+              {activeView === "dashboard" && (
+                <button
+                  onClick={() => setShowDashboardShareModal(true)}
+                  className="p-3 bg-white dark:bg-gray-800 text-violet-500 hover:text-white hover:bg-violet-600 dark:hover:bg-violet-600 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(139,92,246,0.35)] active:scale-95"
+                  title="Bagikan Performa Dashboard"
+                >
+                  <Share2 size={18} />
+                </button>
+              )}
               <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center border border-gray-200 dark:border-gray-700">
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Saldo Saat Ini

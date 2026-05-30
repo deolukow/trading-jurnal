@@ -6,13 +6,16 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Maximize2,
+  Share2,
 } from "lucide-react";
 import { useLocalImage } from "../../hooks/useLocalImage";
 import { FullscreenImageModal } from "./FullscreenImageModal";
+import { ShareCardModal } from "./ShareCardModal";
 import { formatDateTime, formatCurrency, formatLotSize } from "../../utils/formatters";
 
-export const TradeDetailModal = ({ trade, onClose, customFields, currency }) => {
+export const TradeDetailModal = ({ trade, onClose, customFields, currency, activeProfileName }) => {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(-1);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Lift image hooks to the top level
   const beforeImageUrl = useLocalImage(trade?.screenshotBeforeId);
@@ -91,6 +94,14 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency }) => 
         initialIndex={fullscreenImageIndex}
         onClose={() => setFullscreenImageIndex(-1)}
       />
+      {showShareModal && (
+        <ShareCardModal
+          trade={trade}
+          onClose={() => setShowShareModal(false)}
+          currency={currency}
+          activeProfileName={activeProfileName}
+        />
+      )}
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 animate-fadeIn">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-start mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
@@ -249,7 +260,14 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency }) => 
               </div>
             </div>
           </div>
-          <div className="flex justify-end mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="flex justify-between items-center mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg hover:shadow-[0_0_12px_rgba(139,92,246,0.4)] active:scale-95 transition-all flex items-center gap-2 font-medium"
+            >
+              <Share2 size={18} />
+              Bagikan Trade
+            </button>
             <button
               onClick={onClose}
               className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
