@@ -138,6 +138,78 @@ function App() {
     String(new Date().getFullYear()),
   );
 
+  // --- STATES & REFS FOR NOTES WIDGET ---
+  const [notesText, setNotesText] = useState("");
+  const [notesImageId, setNotesImageId] = useState("");
+  const [notesImageUrl, setNotesImageUrl] = useState("");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+
+  // Load notes configuration and blob from IndexedDB per profile
+  useEffect(() => {
+    if (activeProfile) {
+      const savedText = localStorage.getItem(`dashboard_notes_text_${activeProfile.id}`) || "";
+      const savedImgId = localStorage.getItem(`dashboard_notes_img_id_${activeProfile.id}`) || "";
+      setNotesText(savedText);
+      setNotesImageId(savedImgId);
+      setIsEditingNotes(false);
+
+      if (savedImgId) {
+        getItem("trade_images", savedImgId).then((imgData) => {
+          if (imgData && imgData.file) {
+            const url = URL.createObjectURL(imgData.file);
+            setNotesImageUrl(url);
+          } else {
+            setNotesImageUrl("");
+          }
+        }).catch(() => setNotesImageUrl(""));
+      } else {
+        setNotesImageUrl("");
+      }
+    } else {
+      setNotesText("");
+      setNotesImageId("");
+      setNotesImageUrl("");
+      setIsEditingNotes(false);
+    }
+  }, [activeProfile]);
+
+  const handleSaveNotes = async (newText, imageFile, removeImage) => {
+    if (!activeProfile) return;
+
+    let finalImgId = notesImageId;
+
+    try {
+      if (removeImage) {
+        if (notesImageId) {
+          await deleteItem("trade_images", notesImageId);
+        }
+        finalImgId = "";
+        setNotesImageUrl("");
+      } else if (imageFile) {
+        if (notesImageId) {
+          await deleteItem("trade_images", notesImageId);
+        }
+        const newImgId = crypto.randomUUID();
+        await addItem("trade_images", { id: newImgId, file: imageFile });
+        finalImgId = newImgId;
+        
+        const url = URL.createObjectURL(imageFile);
+        setNotesImageUrl(url);
+      }
+
+      localStorage.setItem(`dashboard_notes_text_${activeProfile.id}`, newText);
+      localStorage.setItem(`dashboard_notes_img_id_${activeProfile.id}`, finalImgId);
+
+      setNotesText(newText);
+      setNotesImageId(finalImgId);
+      setIsEditingNotes(false);
+      showToast("Catatan berhasil disimpan!", "success");
+    } catch (e) {
+      console.error(e);
+      showToast("Gagal menyimpan catatan.", "error");
+    }
+  };
+
   // --- STATES & REFS FOR CUSTOMIZABLE LAYOUT ---
   const [isLayoutEditMode, setIsLayoutEditMode] = useState(false);
   const [layoutOrder, setLayoutOrder] = useState([
@@ -154,6 +226,7 @@ function App() {
     { id: "stat_dayWinRate", w: 1, h: 1 },
     { id: "stat_avgWinLoss", w: 1, h: 1 },
     { id: "stat_totalLot", w: 1, h: 1 },
+    { id: "widget_notes", w: 2, h: 2 },
     { id: "widget_chart", w: 4, h: 2 },
     { id: "widget_fields", w: 4, h: 2 },
     { id: "widget_trades", w: 4, h: 2 }
@@ -179,6 +252,7 @@ function App() {
         { id: "stat_dayWinRate", w: 1, h: 1 },
         { id: "stat_avgWinLoss", w: 1, h: 1 },
         { id: "stat_totalLot", w: 1, h: 1 },
+        { id: "widget_notes", w: 2, h: 2 },
         { id: "widget_chart", w: 4, h: 2 },
         { id: "widget_fields", w: 4, h: 2 },
         { id: "widget_trades", w: 4, h: 2 }
@@ -207,6 +281,7 @@ function App() {
                 mapped.push({ id: "stat_dayWinRate", w: 1, h: 1 });
                 mapped.push({ id: "stat_avgWinLoss", w: 1, h: 1 });
                 mapped.push({ id: "stat_totalLot", w: 1, h: 1 });
+                mapped.push({ id: "widget_notes", w: 2, h: 2 });
               } else if (strId === "chart") {
                 mapped.push({ id: "widget_chart", w: 4, h: 2 });
               } else if (strId === "fields") {
@@ -243,6 +318,7 @@ function App() {
         { id: "stat_dayWinRate", w: 1, h: 1 },
         { id: "stat_avgWinLoss", w: 1, h: 1 },
         { id: "stat_totalLot", w: 1, h: 1 },
+        { id: "widget_notes", w: 2, h: 2 },
         { id: "widget_chart", w: 4, h: 2 },
         { id: "widget_fields", w: 4, h: 2 },
         { id: "widget_trades", w: 4, h: 2 }
@@ -354,6 +430,7 @@ function App() {
       case "stat_dayWinRate": return "Day Win %";
       case "stat_avgWinLoss": return "Avg Win/Loss";
       case "stat_totalLot": return "Total Lot";
+      case "widget_notes": return "Catatan & Quotes";
       case "widget_chart": return "Grafik Performa";
       case "widget_fields": return "Tabel Performa Field";
       case "widget_trades": return "Riwayat Trade";
@@ -2103,6 +2180,111 @@ function App() {
                                     customFields={customFields}
                                     currency={activeProfile?.currency}
                                   />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // Widget Notes
+                        if (widget.id === "widget_notes") {
+                          return (
+                            <div
+                              key="widget_notes"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg h-full flex flex-col justify-between select-text min-h-[160px]">
+                                <div className="flex justify-between items-center mb-3 flex-shrink-0 select-none">
+                                  <div className="flex items-center text-gray-700 dark:text-gray-200 font-bold text-sm">
+                                    <BookOpen size={16} className="text-violet-500 mr-2" />
+                                    <span>Catatan & Quotes</span>
+                                  </div>
+                                  {!isLayoutEditMode && (
+                                    <button
+                                      onClick={() => setIsEditingNotes(!isEditingNotes)}
+                                      className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-violet-600 dark:hover:bg-violet-600 text-gray-600 dark:text-gray-300 hover:text-white rounded-lg transition-all font-semibold cursor-pointer"
+                                    >
+                                      {isEditingNotes ? "Batal" : "Edit"}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {isEditingNotes ? (
+                                  <form
+                                    onSubmit={async (e) => {
+                                      e.preventDefault();
+                                      const text = e.target.elements.notesText.value;
+                                      const fileInput = e.target.elements.notesImage;
+                                      const file = fileInput.files[0];
+                                      const removeImg = e.target.elements.removeImg?.checked;
+                                      await handleSaveNotes(text, file, removeImg);
+                                    }}
+                                    className="flex-grow flex flex-col gap-3 h-full overflow-y-auto"
+                                  >
+                                    <textarea
+                                      name="notesText"
+                                      defaultValue={notesText}
+                                      placeholder="Tulis quotes motivasi, reminder trading plan, atau kata penyemangat Anda di sini..."
+                                      className="w-full flex-grow p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-800 dark:text-gray-200 focus:outline-none resize-none min-h-[100px]"
+                                    />
+                                    
+                                    <div className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700/50">
+                                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block">
+                                        Pilih Gambar Penyemangat:
+                                      </label>
+                                      <input
+                                        type="file"
+                                        name="notesImage"
+                                        accept="image/*"
+                                        className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 cursor-pointer"
+                                      />
+                                      {notesImageUrl && (
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <input type="checkbox" name="removeImg" id="removeImgCheckbox" className="w-3.5 h-3.5 cursor-pointer" />
+                                          <label htmlFor="removeImgCheckbox" className="text-xs text-red-500 hover:text-red-400 font-semibold cursor-pointer">
+                                            Hapus Gambar Saat Ini
+                                          </label>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <button
+                                      type="submit"
+                                      className="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold shadow-md active:scale-98 transition-all cursor-pointer"
+                                    >
+                                      Simpan Catatan
+                                    </button>
+                                  </form>
+                                ) : (
+                                  <div className="flex-grow overflow-y-auto pr-1 flex flex-col gap-3 max-h-full scrollbar-thin">
+                                    {notesImageUrl && (
+                                      <div className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                                        <img
+                                          src={notesImageUrl}
+                                          alt="Penyemangat"
+                                          className="w-full object-cover max-h-[160px] md:max-h-[220px]"
+                                        />
+                                      </div>
+                                    )}
+                                    {notesText ? (
+                                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed italic">
+                                        "{notesText}"
+                                      </p>
+                                    ) : (
+                                      <div className="flex-grow flex flex-col items-center justify-center text-center p-4 min-h-[120px]">
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                                          Belum ada catatan penyemangat. Klik "Edit" di kanan atas untuk menulis quotes atau mengunggah gambar penyemangat Anda!
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>
