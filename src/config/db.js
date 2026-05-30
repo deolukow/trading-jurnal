@@ -102,3 +102,107 @@ export const getItemsByProfileId = (storeName, profileId) =>
     const index = store.index("profileId");
     index.getAll(profileId).onsuccess = (e) => resolve(e.target.result);
   });
+
+export const exportIndexedDB = async () => {
+  const backup = {
+    version: 2,
+    timestamp: Date.now(),
+    stores: {}
+  };
+
+  for (const storeName of ALL_STORES) {
+    const items = await getAllItems(storeName);
+    if (storeName === "trade_images") {
+      const processedItems = [];
+      for (const item of items) {
+        if (item.file) {
+          try {
+            const base64 = await blobToBase64(item.file);
+            processedItems.push({
+              id: item.id,
+              base64: base64,
+              name: item.file.name || "screenshot.png",
+              type: item.file.type || "image/png"
+            });
+          } catch (err) {
+            console.error("Failed to convert image to base64:", err);
+          }
+        }
+      }
+      backup.stores[storeName] = processedItems;
+    } else {
+      backup.stores[storeName] = items;
+    }
+  }
+
+  return backup;
+};
+
+export const importIndexedDB = async (backupData) => {
+  if (!backupData || !backupData.stores) {
+    throw new Error("Format data cadangan tidak valid.");
+  }
+
+  await initDB();
+
+  for (const storeName of ALL_STORES) {
+    const items = backupData.stores[storeName];
+    if (!items) continue;
+
+    // Clear current store entries
+    await dbAction(storeName, "readwrite", (store, resolve, reject) => {
+      const request = store.clear();
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+
+    // Populate with imported entries
+    for (let item of items) {
+      if (storeName === "trade_images" && item.base64) {
+        try {
+          const blob = base64ToBlob(item.base64);
+          const file = new File([blob], item.name || "screenshot.png", { type: item.type || "image/png" });
+          item = {
+            id: item.id,
+            file: file
+          };
+        } catch (err) {
+          console.error("Failed to restore image from base64:", err);
+          continue;
+        }
+      }
+      
+      await dbAction(storeName, "readwrite", (store, resolve, reject) => {
+        const request = store.put(item);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+  }
+
+  return true;
+};
+
+// Base64 helper conversion utilities
+const blobToBase64 = (blob) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+const base64ToBlob = (base64DataUrl) => {
+  const parts = base64DataUrl.split(",");
+  if (parts.length < 2) throw new Error("Invalid base64 format");
+  const mime = parts[0].match(/:(.*?);/)[1];
+  const bstr = atob(parts[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+};
+

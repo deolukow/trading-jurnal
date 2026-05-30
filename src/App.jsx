@@ -48,6 +48,7 @@ import {
   Divide,
   BarChartHorizontal,
   Hash,
+  Cloud,
 } from "lucide-react";
 
 // modular components
@@ -85,6 +86,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { StrategyPage } from "./pages/StrategyPage";
 import { CalendarView } from "./pages/CalendarView";
 import { GalleryView } from "./pages/GalleryView";
+import { SyncPage } from "./pages/SyncPage";
 
 // --- MAIN APP COMPONENT ---
 function App() {
@@ -137,6 +139,18 @@ function App() {
   const [selectedYear, setSelectedYear] = useState(
     String(new Date().getFullYear()),
   );
+
+  // Load Google Identity Services OAuth script
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   // --- STATES & REFS FOR NOTES WIDGET ---
   const [notesText, setNotesText] = useState("");
@@ -1574,6 +1588,15 @@ function App() {
               setIsSidebarOpen(false);
             }}
           />
+          <SidebarLink
+            icon={<Cloud size={20} className="text-violet-500" />}
+            text="Sinkronisasi Cloud"
+            active={activeView === "sync"}
+            onClick={() => {
+              setActiveView("sync");
+              setIsSidebarOpen(false);
+            }}
+          />
         </ul>
         <ul className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
           <li className="px-3 pb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
@@ -1926,7 +1949,9 @@ function App() {
                     ? "Strategi"
                     : activeView === "calendar"
                       ? "Kalender Trade"
-                      : "Galeri Trade"}
+                      : activeView === "gallery"
+                        ? "Galeri Trade"
+                        : "Sinkronisasi Cloud"}
               </h2>
             </div>
             <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
@@ -2663,6 +2688,13 @@ function App() {
                 customEndDate={customEndDate}
                 setCustomStartDate={setCustomStartDate}
                 setCustomEndDate={setCustomEndDate}
+              />
+            )}
+            {activeView === "sync" && activeProfile && (
+              <SyncPage
+                activeProfile={activeProfile}
+                showToast={showToast}
+                onRefresh={() => refreshAllData(activeProfile.id)}
               />
             )}
           </div>
