@@ -92,3 +92,9 @@ textarea:focus {
 .text-blue-400 {
   text-shadow: 0 0 8px rgba(167, 139, 250, 0.3);
 }
+
+/* Disable pull-to-refresh on mobile browsers for high-fidelity native feeling */
+html,
+body {
+  overscroll-behavior-y: contain;
+}
