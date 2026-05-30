@@ -1239,10 +1239,21 @@ function App() {
 
             const formatDateStr = (date) => {
               return date.toLocaleDateString("id-ID", {
-                day: "2-digit",
-                month: "2-digit",
+                weekday: "long",
+                day: "numeric",
+                month: "long",
                 year: "numeric"
-              }).replace(/\//g, "-");
+              });
+            };
+
+            const parseDateLocal = (dateStr) => {
+              if (!dateStr) return new Date();
+              const parts = dateStr.split("-");
+              if (parts.length === 3) {
+                // Year, Month (0-indexed), Day
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+              }
+              return new Date(dateStr);
             };
 
             if (activePeriod === "daily") {
@@ -1263,8 +1274,8 @@ function App() {
               const lastDay = new Date(selectedYear, 11, 31);
               return { start: formatDateStr(firstDay), end: formatDateStr(lastDay) };
             } else if (activePeriod === "custom") {
-              const startD = customStartDate ? new Date(customStartDate) : new Date();
-              const endD = customEndDate ? new Date(customEndDate) : new Date();
+              const startD = parseDateLocal(customStartDate);
+              const endD = parseDateLocal(customEndDate);
               return { start: formatDateStr(startD), end: formatDateStr(endD) };
             } else {
               if (trades.length > 0) {

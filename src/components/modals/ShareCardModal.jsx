@@ -96,8 +96,8 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName }) 
   const symbolLabel = isDashboard ? "Portfolio" : "Symbol";
   const positionLabel = isDashboard ? "Growth" : "Position";
   const pnlLabel = isDashboard ? "Net Performance" : (pnlFormat === "ticks_percent" ? "Total Ticks/Points" : "Profit/Loss");
-  const entryLabel = isDashboard ? "Start Date" : "Entry Price";
-  const exitLabel = isDashboard ? "End Date" : "Exit Price (Last)";
+  const entryLabel = isDashboard ? "Tanggal Mulai" : "Entry Price";
+  const exitLabel = isDashboard ? "Tanggal Selesai" : "Exit Price (Last)";
 
   // Format P&L for preview text
   const getPnlPreviewText = () => {
@@ -290,7 +290,7 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName }) 
       ctx.fillText(entryLabel, startX, 615);
       
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 36px Inter, system-ui, sans-serif";
+      ctx.font = isDashboard ? "bold 23px Inter, system-ui, sans-serif" : "bold 36px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillText(isDashboard ? startDate : entryPrice.toLocaleString("id-ID"), startX, 652);
@@ -302,7 +302,7 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName }) 
       ctx.fillText(exitLabel, 380, 615);
       
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 36px Inter, system-ui, sans-serif";
+      ctx.font = isDashboard ? "bold 23px Inter, system-ui, sans-serif" : "bold 36px Inter, system-ui, sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillText(isDashboard ? endDate : exitPrice.toLocaleString("id-ID"), 380, 652);
@@ -496,7 +496,7 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName }) 
 
                 {/* Entry & Exit Price / Period Dates (Toggleable) */}
                 {showPrices && (
-                  <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-2 max-w-[65%]">
+                  <div className={`grid grid-cols-2 gap-4 border-t border-white/5 pt-2 ${isDashboard ? "max-w-full" : "max-w-[65%]"}`}>
                     <div className="flex flex-col">
                       <span className="text-gray-500 text-[9px] font-medium uppercase tracking-wider">{entryLabel}</span>
                       <span className="text-white font-bold text-xs sm:text-sm mt-0.5">
