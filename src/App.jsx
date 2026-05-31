@@ -2401,6 +2401,7 @@ function App() {
                                 <FieldPerformanceTable
                                   trades={filteredTrades}
                                   customFields={customFields}
+                                  currency={activeProfile?.currency}
                                 />
                               </div>
                             </div>
