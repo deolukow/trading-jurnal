@@ -1056,6 +1056,23 @@ function App() {
     }
   };
 
+  const handleCloseTrade = async (trade) => {
+    if (!activeProfile || !trade) return;
+    try {
+      const now = new Date();
+      await updateItem("trades", {
+        ...trade,
+        exitDate: now,
+        updatedAt: now,
+      });
+      showToast("Trade berhasil ditutup!", "success");
+      refreshAllData(activeProfile.id, true);
+    } catch (e) {
+      console.error(e);
+      showToast("Gagal menutup trade.", "error");
+    }
+  };
+
   const openDeleteModal = (type, data) => {
     setItemToDelete({ type, data });
     setIsDeleteModalOpen(true);
@@ -2442,6 +2459,7 @@ function App() {
                                       setEditingTrade(null);
                                       setIsTradeFormVisible(true);
                                     }}
+                                    onCloseTrade={handleCloseTrade}
                                     title={`Riwayat Trade (${getPeriodLabel()})`}
                                     requestSort={requestSort}
                                     sortConfig={sortConfig}
@@ -2915,6 +2933,7 @@ function App() {
                   setIsTradeFormVisible(true);
                 }}
                 onDelete={(type, data) => openDeleteModal(type, data)}
+                onCloseTrade={handleCloseTrade}
                 customFields={customFields}
                 currency={activeProfile?.currency}
               />

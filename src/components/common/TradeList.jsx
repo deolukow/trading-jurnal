@@ -8,6 +8,7 @@ export const TradeList = ({
   onDelete,
   onView,
   onAddTrade,
+  onCloseTrade,
   title = "Riwayat Trade",
   requestSort,
   sortConfig,
@@ -72,6 +73,9 @@ export const TradeList = ({
                   {getSortIndicator("exitDate")}
                 </span>
               </th>
+              <th scope="col" className="p-3 text-center">
+                Status
+              </th>
               <th scope="col" className="p-3">
                 Durasi
               </th>
@@ -128,7 +132,7 @@ export const TradeList = ({
             {trades.length === 0 ? (
               <tr>
                 <td
-                  colSpan={10 + customFields.length}
+                  colSpan={11 + customFields.length}
                   className="text-center p-6 text-gray-500"
                 >
                   Tidak ada trade untuk ditampilkan.
@@ -143,6 +147,30 @@ export const TradeList = ({
                   <td className="p-3">{formatDateTime(trade.tradeDate)}</td>
                   <td className="p-3">
                     {trade.exitDate ? formatDateTime(trade.exitDate) : "-"}
+                  </td>
+                  <td className="p-3 text-center">
+                    {trade.exitDate ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-extrabold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700/30 dark:text-gray-400 border border-gray-250/30 dark:border-gray-600/40 shadow-sm transition-all duration-300 select-none">
+                        <span className="h-1.5 w-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>
+                        CLOSED
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onCloseTrade) onCloseTrade(trade);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-extrabold rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/10 shadow-[0_0_12px_rgba(124,58,237,0.15)] hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-95 transform transition-all cursor-pointer select-none"
+                        title="Klik untuk Menutup Posisi Trade Ini Sekarang"
+                      >
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+                        </span>
+                        OPEN
+                      </button>
+                    )}
                   </td>
                   <td className="p-3 font-medium text-gray-500 dark:text-gray-400">
                     {formatDuration(trade.tradeDate, trade.exitDate)}

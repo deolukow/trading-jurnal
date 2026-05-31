@@ -9,6 +9,7 @@ export const CalendarView = ({
   onEdit,
   onDelete,
   onView,
+  onCloseTrade,
   customFields,
   currency,
 }) => {
@@ -457,6 +458,7 @@ export const CalendarView = ({
           onEdit={onEdit}
           onView={onView}
           onDelete={onDelete}
+          onCloseTrade={onCloseTrade}
           title={`Trade untuk ${selectedDate.toLocaleDateString("id-ID", {
             weekday: "long",
             year: "numeric",
