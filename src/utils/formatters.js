@@ -43,3 +43,26 @@ export const formatLotSize = (value) => {
   if (typeof value !== "number") return "0.00 LOT";
   return `${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LOT`;
 };
+
+export const formatDuration = (entryDate, exitDate) => {
+  if (!entryDate || !exitDate) return "-";
+  const entry = entryDate instanceof Date ? entryDate : new Date(entryDate);
+  const exit = exitDate instanceof Date ? exitDate : new Date(exitDate);
+  
+  if (isNaN(entry.getTime()) || isNaN(exit.getTime())) return "-";
+  
+  const diffMs = exit.getTime() - entry.getTime();
+  if (diffMs <= 0) return "0m";
+  
+  const diffMins = Math.floor(diffMs / 60000);
+  const days = Math.floor(diffMins / 1440);
+  const hours = Math.floor((diffMins % 1440) / 60);
+  const mins = diffMins % 60;
+  
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+  
+  return parts.join(" ");
+};

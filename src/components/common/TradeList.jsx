@@ -1,12 +1,13 @@
 import React from "react";
-import { Info, Edit3, Trash2 } from "lucide-react";
-import { formatDateTime, formatCurrency } from "../../utils/formatters";
+import { Info, Edit3, Trash2, Plus } from "lucide-react";
+import { formatDateTime, formatCurrency, formatDuration } from "../../utils/formatters";
 
 export const TradeList = ({
   trades,
   onEdit,
   onDelete,
   onView,
+  onAddTrade,
   title = "Riwayat Trade",
   requestSort,
   sortConfig,
@@ -42,18 +43,37 @@ export const TradeList = ({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg animate-fadeIn overflow-hidden mt-6">
-      <h3 className="text-xl font-bold text-gray-900 dark:text-white p-4">
-        {title}
-      </h3>
+      <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+          {title}
+        </h3>
+        {onAddTrade && (
+          <button
+            onClick={onAddTrade}
+            className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all cursor-pointer"
+          >
+            <Plus size={16} /> Tambah Trade
+          </button>
+        )}
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
             <tr>
               <th {...headerProps("tradeDate")}>
-                Tanggal{" "}
+                Entry{" "}
                 <span className="text-blue-500 dark:text-blue-400">
                   {getSortIndicator("tradeDate")}
                 </span>
+              </th>
+              <th {...headerProps("exitDate")}>
+                Exit{" "}
+                <span className="text-blue-500 dark:text-blue-400">
+                  {getSortIndicator("exitDate")}
+                </span>
+              </th>
+              <th scope="col" className="p-3">
+                Durasi
               </th>
               <th {...headerProps("pair")}>
                 Pair{" "}
@@ -108,7 +128,7 @@ export const TradeList = ({
             {trades.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8 + customFields.length}
+                  colSpan={10 + customFields.length}
                   className="text-center p-6 text-gray-500"
                 >
                   Tidak ada trade untuk ditampilkan.
@@ -121,7 +141,13 @@ export const TradeList = ({
                   className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
                   <td className="p-3">{formatDateTime(trade.tradeDate)}</td>
-                  <td className="p-3 font-medium text-gray-900 dark:text-white">
+                  <td className="p-3">
+                    {trade.exitDate ? formatDateTime(trade.exitDate) : "-"}
+                  </td>
+                  <td className="p-3 font-medium text-gray-500 dark:text-gray-400">
+                    {formatDuration(trade.tradeDate, trade.exitDate)}
+                  </td>
+                  <td className="p-3 font-semibold text-gray-900 dark:text-white">
                     {trade.pair}
                   </td>
                   <td className="p-3">

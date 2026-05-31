@@ -11,7 +11,7 @@ import {
 import { useLocalImage } from "../../hooks/useLocalImage";
 import { FullscreenImageModal } from "./FullscreenImageModal";
 import { ShareCardModal } from "./ShareCardModal";
-import { formatDateTime, formatCurrency, formatLotSize } from "../../utils/formatters";
+import { formatDateTime, formatCurrency, formatLotSize, formatDuration } from "../../utils/formatters";
 
 export const TradeDetailModal = ({ trade, onClose, customFields, currency, activeProfileName }) => {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(-1);
@@ -201,11 +201,30 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto flex-grow pr-1">
             <div className="space-y-4 lg:col-span-1">
-              <div className="flex items-center space-x-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                <Clock size={20} className="text-gray-400 dark:text-gray-500" />
-                <span className="text-lg text-gray-700 dark:text-gray-300 font-medium">
-                  {formatDateTime(trade.tradeDate)}
-                </span>
+              <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200/50 dark:border-gray-700/30 space-y-3.5 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  <Clock size={16} className="text-blue-500 dark:text-blue-400" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">
+                      Tanggal & Jam Entry
+                    </span>
+                    <span className="text-sm text-gray-800 dark:text-white font-semibold">
+                      {formatDateTime(trade.tradeDate)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 border-t border-gray-200 dark:border-gray-600/50 pt-2.5">
+                  <Clock size={16} className="text-red-500 dark:text-red-400" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">
+                      Tanggal & Jam Exit
+                    </span>
+                    <span className="text-sm text-gray-800 dark:text-white font-semibold">
+                      {trade.exitDate ? formatDateTime(trade.exitDate) : "Belum Keluar / Masih Terbuka"}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
@@ -225,15 +244,25 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                   </p>
                 </div>
               </div>
-              <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-xs">
-                  Risk/Reward Ratio
-                </p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
-                  {trade.riskRewardRatio > 0
-                    ? `1 : ${parseFloat(trade.riskRewardRatio).toFixed(2)}`
-                    : "N/A"}
-                </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-xs">
+                    Risk/Reward Ratio
+                  </p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {trade.riskRewardRatio > 0
+                      ? `1 : ${parseFloat(trade.riskRewardRatio).toFixed(2)}`
+                      : "N/A"}
+                  </p>
+                </div>
+                <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-xs">
+                    Durasi Trade
+                  </p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {formatDuration(trade.tradeDate, trade.exitDate)}
+                  </p>
+                </div>
               </div>
               <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 text-xs">

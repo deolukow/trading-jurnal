@@ -2437,6 +2437,10 @@ function App() {
                                       setIsTradeFormVisible(true);
                                     }}
                                     onDelete={(type, data) => openDeleteModal(type, data)}
+                                    onAddTrade={() => {
+                                      setEditingTrade(null);
+                                      setIsTradeFormVisible(true);
+                                    }}
                                     title={`Riwayat Trade (${getPeriodLabel()})`}
                                     requestSort={requestSort}
                                     sortConfig={sortConfig}

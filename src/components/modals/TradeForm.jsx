@@ -16,6 +16,7 @@ export const TradeForm = ({
   const initialTradeData = useMemo(() => {
     const baseData = {
       tradeDate: toDateTimeLocalInput(new Date()),
+      exitDate: "",
       pair: "",
       type: "long",
       lotSize: "0.01",
@@ -95,6 +96,7 @@ export const TradeForm = ({
           ...initialTradeData,
           ...editingTrade,
           tradeDate: toDateTimeLocalInput(editingTrade.tradeDate),
+          exitDate: editingTrade.exitDate ? toDateTimeLocalInput(editingTrade.exitDate) : "",
           pnl: String(editingTrade.pnl || "0"),
           lotSize: String(editingTrade.lotSize || "0.01"),
           riskRewardRatio: String(editingTrade.riskRewardRatio || "0"),
@@ -239,6 +241,7 @@ export const TradeForm = ({
       takeProfit: parseFloat(formData.takeProfit) || 0,
       stopLoss: parseFloat(formData.stopLoss) || 0,
       tradeDate: new Date(formData.tradeDate),
+      exitDate: formData.exitDate ? new Date(formData.exitDate) : null,
     };
     onSaveTrade(finalData, screenshotBeforeFile, screenshotAfterFile);
   };
@@ -383,80 +386,128 @@ export const TradeForm = ({
           </select>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {pairs.length > 0 ? (
-            <select
-              name="pair"
-              value={formData.pair || ""}
-              onChange={handleChange}
-              className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded"
-              required
-            >
-              <option value="" disabled>
-                Pilih Pair
-              </option>
-              {pairs.map((p) => (
-                <option key={p.id} value={p.name}>
-                  {p.name}
+          {/* Pair */}
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+              Pair / Aset *
+            </label>
+            {pairs.length > 0 ? (
+              <select
+                name="pair"
+                value={formData.pair || ""}
+                onChange={handleChange}
+                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
+                required
+              >
+                <option value="" disabled>
+                  Pilih Pair
                 </option>
-              ))}
-              {editingTrade &&
-                editingTrade.pair &&
-                !pairs.some((p) => p.name === editingTrade.pair) && (
-                  <option
-                    value={editingTrade.pair}
-                    className="text-gray-400 bg-gray-800"
-                  >
-                    {editingTrade.pair} (Lama)
+                {pairs.map((p) => (
+                  <option key={p.id} value={p.name}>
+                    {p.name}
                   </option>
-                )}
-            </select>
-          ) : (
+                ))}
+                {editingTrade &&
+                  editingTrade.pair &&
+                  !pairs.some((p) => p.name === editingTrade.pair) && (
+                    <option
+                      value={editingTrade.pair}
+                      className="text-gray-400 bg-gray-800"
+                    >
+                      {editingTrade.pair} (Lama)
+                    </option>
+                  )}
+              </select>
+            ) : (
+              <input
+                name="pair"
+                value={formData.pair || ""}
+                onChange={handleChange}
+                placeholder="Pair (e.g., BTC/USD)"
+                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
+                required
+              />
+            )}
+          </div>
+
+          {/* Tanggal & Jam Entry */}
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+              Tanggal & Jam Entry *
+            </label>
             <input
-              name="pair"
-              value={formData.pair || ""}
+              type="datetime-local"
+              name="tradeDate"
+              value={formData.tradeDate || ""}
               onChange={handleChange}
-              placeholder="Pair (e.g., BTC/USD)"
-              className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
               required
             />
-          )}
-          <input
-            type="datetime-local"
-            name="tradeDate"
-            value={formData.tradeDate || ""}
-            onChange={handleChange}
-            className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded"
-            required
-          />
-          <select
-            name="type"
-            value={formData.type || "long"}
-            onChange={handleChange}
-            className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded"
-          >
-            <option value="long">Long</option>
-            <option value="short">Short</option>
-          </select>
-          <input
-            type="number"
-            step="any"
-            name="pnl"
-            value={formData.pnl || ""}
-            onChange={handleChange}
-            placeholder="P&L (Hasil Trade)"
-            className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded font-bold"
-            required
-          />
-          <input
-            type="number"
-            step="any"
-            name="lotSize"
-            value={formData.lotSize || ""}
-            onChange={handleChange}
-            placeholder="Lot Size"
-            className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded"
-            required
-          />
+          </div>
+
+          {/* Tanggal & Jam Exit */}
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+              Tanggal & Jam Exit (Opsional)
+            </label>
+            <input
+              type="datetime-local"
+              name="exitDate"
+              value={formData.exitDate || ""}
+              onChange={handleChange}
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
+            />
+          </div>
+
+          {/* Tipe */}
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+              Tipe Posisi *
+            </label>
+            <select
+              name="type"
+              value={formData.type || "long"}
+              onChange={handleChange}
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
+            >
+              <option value="long">Long</option>
+              <option value="short">Short</option>
+            </select>
+          </div>
+
+          {/* P&L */}
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+              P&L / Hasil Trade *
+            </label>
+            <input
+              type="number"
+              step="any"
+              name="pnl"
+              value={formData.pnl || ""}
+              onChange={handleChange}
+              placeholder="Hasil P&L"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded font-bold outline-none border border-transparent focus:border-blue-500"
+              required
+            />
+          </div>
+
+          {/* Lot Size */}
+          <div className="flex flex-col">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+              Lot Size *
+            </label>
+            <input
+              type="number"
+              step="any"
+              name="lotSize"
+              value={formData.lotSize || ""}
+              onChange={handleChange}
+              placeholder="0.01"
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
+              required
+            />
+          </div>
 
           {/* Mengubah Setup dari Input Teks ke Dropdown Dinamis */}
           <div className="md:col-span-3 flex flex-col">
