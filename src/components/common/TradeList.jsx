@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Info, Edit3, Trash2, Plus } from "lucide-react";
 import { formatDateTime, formatCurrency, formatDuration } from "../../utils/formatters";
 
@@ -15,6 +15,12 @@ export const TradeList = ({
   customFields,
   currency,
 }) => {
+  const [rowLimit, setRowLimit] = useState(25); // Default to 25 rows
+
+  const displayedTrades = useMemo(() => {
+    if (rowLimit === "all") return trades;
+    return trades.slice(0, rowLimit);
+  }, [trades, rowLimit]);
   const getSortIndicator = (key) => {
     if (sortConfig && sortConfig.key === key) {
       return sortConfig.direction === "ascending" ? "▲" : "▼";
@@ -44,18 +50,44 @@ export const TradeList = ({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg animate-fadeIn overflow-hidden mt-6">
-      <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b border-gray-200 dark:border-gray-700 gap-3">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
           {title}
         </h3>
-        {onAddTrade && (
-          <button
-            onClick={onAddTrade}
-            className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all cursor-pointer"
-          >
-            <Plus size={16} /> Tambah Trade
-          </button>
-        )}
+        
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-3 w-full sm:w-auto justify-end">
+          {/* Custom Premium Limit Rows Segmented Control */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-gray-100/80 dark:bg-gray-950/40 p-1 rounded-xl border border-gray-250/20 dark:border-gray-700/40 backdrop-blur-sm shadow-inner">
+            <span className="text-[10px] uppercase tracking-wider font-extrabold text-gray-500 dark:text-gray-400 px-2 select-none">
+              Tampilkan:
+            </span>
+            <div className="flex items-center gap-1">
+              {[10, 25, 50, 100, "all"].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setRowLimit(val)}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all duration-300 cursor-pointer ${
+                    rowLimit === val
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white shadow-[0_2px_8px_rgba(124,58,237,0.3)] scale-[1.03]"
+                      : "text-gray-500 dark:text-gray-400 hover:bg-gray-200/60 dark:hover:bg-gray-800/60 hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {val === "all" ? "Semua" : val}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {onAddTrade && (
+            <button
+              onClick={onAddTrade}
+              className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] hover:-translate-y-0.5 active:translate-y-0 active:scale-98 transition-all cursor-pointer"
+            >
+              <Plus size={16} /> Tambah Trade
+            </button>
+          )}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
@@ -129,7 +161,7 @@ export const TradeList = ({
             </tr>
           </thead>
           <tbody>
-            {trades.length === 0 ? (
+            {displayedTrades.length === 0 ? (
               <tr>
                 <td
                   colSpan={11 + customFields.length}
@@ -139,7 +171,7 @@ export const TradeList = ({
                 </td>
               </tr>
             ) : (
-              trades.map((trade) => (
+              displayedTrades.map((trade) => (
                 <tr
                   key={trade.id}
                   className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -245,6 +277,11 @@ export const TradeList = ({
           </tbody>
         </table>
       </div>
+      {trades.length > 0 && (
+        <div className="p-3 bg-gray-50/50 dark:bg-gray-900/20 text-xs text-gray-500 dark:text-gray-400 text-right border-t border-gray-150 dark:border-gray-700/30 select-none">
+          Menampilkan <span className="font-bold text-gray-700 dark:text-gray-200">{displayedTrades.length}</span> dari <span className="font-bold text-gray-700 dark:text-gray-200">{trades.length}</span> trade
+        </div>
+      )}
     </div>
   );
 };
