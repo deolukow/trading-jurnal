@@ -646,24 +646,39 @@ function App() {
     );
     setTradingProfiles(sortedProfiles);
 
-    if (
-      activeProfile &&
-      !sortedProfiles.some((p) => p.id === activeProfile.id)
-    ) {
-      const newActiveProfile =
-        sortedProfiles.length > 0 ? sortedProfiles[0] : null;
-      setActiveProfile(newActiveProfile);
-      if (newActiveProfile) {
-        localStorage.setItem("activeProfileId", newActiveProfile.id);
-      } else {
-        localStorage.removeItem("activeProfileId");
+    setActiveProfile((prevActive) => {
+      if (prevActive) {
+        const updatedActive = sortedProfiles.find((p) => p.id === prevActive.id);
+        if (updatedActive) {
+          // Compare properties to avoid redundant state updates
+          if (
+            updatedActive.name !== prevActive.name ||
+            updatedActive.description !== prevActive.description ||
+            updatedActive.avatar !== prevActive.avatar ||
+            updatedActive.currency !== prevActive.currency
+          ) {
+            return updatedActive;
+          }
+          return prevActive;
+        } else {
+          const newActiveProfile = sortedProfiles.length > 0 ? sortedProfiles[0] : null;
+          if (newActiveProfile) {
+            localStorage.setItem("activeProfileId", newActiveProfile.id);
+          } else {
+            localStorage.removeItem("activeProfileId");
+          }
+          return newActiveProfile;
+        }
+      } else if (sortedProfiles.length > 0) {
+        const lastProfileId = localStorage.getItem("activeProfileId");
+        const lastProfile = sortedProfiles.find((p) => p.id === lastProfileId);
+        const nextActive = lastProfile || sortedProfiles[0];
+        localStorage.setItem("activeProfileId", nextActive.id);
+        return nextActive;
       }
-    } else if (!activeProfile && sortedProfiles.length > 0) {
-      const lastProfileId = localStorage.getItem("activeProfileId");
-      const lastProfile = sortedProfiles.find((p) => p.id === lastProfileId);
-      setActiveProfile(lastProfile || sortedProfiles[0]);
-    }
-  }, [activeProfile]);
+      return null;
+    });
+  }, []);
 
   const triggerAutoBackup = useCallback(async () => {
     const token = localStorage.getItem("gdrive_sync_token");
