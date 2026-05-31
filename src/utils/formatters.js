@@ -44,16 +44,8 @@ export const formatLotSize = (value) => {
   return `${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LOT`;
 };
 
-export const formatDuration = (entryDate, exitDate) => {
-  if (!entryDate || !exitDate) return "-";
-  const entry = entryDate instanceof Date ? entryDate : new Date(entryDate);
-  const exit = exitDate instanceof Date ? exitDate : new Date(exitDate);
-  
-  if (isNaN(entry.getTime()) || isNaN(exit.getTime())) return "-";
-  
-  const diffMs = exit.getTime() - entry.getTime();
-  if (diffMs <= 0) return "0m";
-  
+export const formatDurationMs = (diffMs) => {
+  if (typeof diffMs !== "number" || isNaN(diffMs) || diffMs <= 0) return "-";
   const diffMins = Math.floor(diffMs / 60000);
   const days = Math.floor(diffMins / 1440);
   const hours = Math.floor((diffMins % 1440) / 60);
@@ -65,4 +57,17 @@ export const formatDuration = (entryDate, exitDate) => {
   if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
   
   return parts.join(" ");
+};
+
+export const formatDuration = (entryDate, exitDate) => {
+  if (!entryDate || !exitDate) return "-";
+  const entry = entryDate instanceof Date ? entryDate : new Date(entryDate);
+  const exit = exitDate instanceof Date ? exitDate : new Date(exitDate);
+  
+  if (isNaN(entry.getTime()) || isNaN(exit.getTime())) return "-";
+  
+  const diffMs = exit.getTime() - entry.getTime();
+  if (diffMs <= 0) return "0m";
+  
+  return formatDurationMs(diffMs);
 };

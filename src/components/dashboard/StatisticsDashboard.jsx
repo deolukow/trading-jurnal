@@ -11,6 +11,7 @@ import {
   CalendarDays,
   BarChartHorizontal,
   Hash,
+  Clock,
 } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { GaugeChart } from "./GaugeChart";
@@ -206,6 +207,38 @@ export const StatisticsDashboard = ({ stats, currency }) => {
         icon={<Hash size={16} />}
         footer={<span>Volum Trading Akumulatif</span>}
       />
+      <StatCard
+        title="Durasi Trading"
+        icon={<Clock size={16} />}
+        footer={<span>Statistik durasi trading tertutup</span>}
+      >
+        <div className="flex flex-col items-center justify-center w-full my-1">
+          <div className="text-center">
+            <p className="text-2xl font-black text-gray-900 dark:text-white bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+              {stats.avgDuration || "-"}
+            </p>
+            <p className="text-[10px] uppercase font-extrabold text-gray-400 dark:text-gray-500 tracking-wider mt-0.5">
+              Rata-Rata
+            </p>
+          </div>
+          
+          <div className="flex items-center justify-between w-full mt-4 pt-3 border-t border-gray-150 dark:border-gray-700/50">
+            <div className="text-center flex-1">
+              <p className="text-xs font-bold text-green-600 dark:text-green-400">
+                {stats.minDuration || "-"}
+              </p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500">Terpendek</p>
+            </div>
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <div className="text-center flex-1">
+              <p className="text-xs font-bold text-red-600 dark:text-red-400">
+                {stats.maxDuration || "-"}
+              </p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500">Terlama</p>
+            </div>
+          </div>
+        </div>
+      </StatCard>
     </div>
   );
 };

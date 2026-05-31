@@ -19,6 +19,7 @@ import {
   toDateTimeLocalInput,
   formatCurrency,
   formatLotSize,
+  formatDurationMs,
 } from "./utils/formatters";
 import { generateDeviceFingerprint, classNames } from "./utils/helpers";
 import { useLocalImage } from "./hooks/useLocalImage";
@@ -53,6 +54,7 @@ import {
   Cloud,
   CloudUpload,
   CloudDownload,
+  Clock,
 } from "lucide-react";
 
 // modular components
@@ -246,6 +248,7 @@ function App() {
     { id: "stat_dayWinRate", w: 1, h: 1 },
     { id: "stat_avgWinLoss", w: 1, h: 1 },
     { id: "stat_totalLot", w: 1, h: 1 },
+    { id: "stat_duration", w: 1, h: 1 },
     { id: "widget_notes", w: 2, h: 2 },
     { id: "widget_chart", w: 4, h: 2 },
     { id: "widget_fields", w: 4, h: 2 },
@@ -272,6 +275,7 @@ function App() {
         { id: "stat_dayWinRate", w: 1, h: 1 },
         { id: "stat_avgWinLoss", w: 1, h: 1 },
         { id: "stat_totalLot", w: 1, h: 1 },
+        { id: "stat_duration", w: 1, h: 1 },
         { id: "widget_notes", w: 2, h: 2 },
         { id: "widget_chart", w: 4, h: 2 },
         { id: "widget_fields", w: 4, h: 2 },
@@ -301,6 +305,7 @@ function App() {
                 mapped.push({ id: "stat_dayWinRate", w: 1, h: 1 });
                 mapped.push({ id: "stat_avgWinLoss", w: 1, h: 1 });
                 mapped.push({ id: "stat_totalLot", w: 1, h: 1 });
+                mapped.push({ id: "stat_duration", w: 1, h: 1 });
                 mapped.push({ id: "widget_notes", w: 2, h: 2 });
               } else if (strId === "chart") {
                 mapped.push({ id: "widget_chart", w: 4, h: 2 });
@@ -338,6 +343,7 @@ function App() {
         { id: "stat_dayWinRate", w: 1, h: 1 },
         { id: "stat_avgWinLoss", w: 1, h: 1 },
         { id: "stat_totalLot", w: 1, h: 1 },
+        { id: "stat_duration", w: 1, h: 1 },
         { id: "widget_notes", w: 2, h: 2 },
         { id: "widget_chart", w: 4, h: 2 },
         { id: "widget_fields", w: 4, h: 2 },
@@ -452,6 +458,7 @@ function App() {
       case "stat_dayWinRate": return "Day Win %";
       case "stat_avgWinLoss": return "Avg Win/Loss";
       case "stat_totalLot": return "Total Lot";
+      case "stat_duration": return "Durasi Trading";
       case "widget_notes": return "Catatan & Quotes";
       case "widget_chart": return "Grafik Performa";
       case "widget_fields": return "Tabel Performa Field";
@@ -1360,6 +1367,9 @@ function App() {
       bestTrade: 0,
       worstTrade: 0,
       bestRR: 0,
+      avgDuration: "-",
+      maxDuration: "-",
+      minDuration: "-",
     };
     if (!activeProfile) return defaultStats;
 
@@ -1445,6 +1455,26 @@ function App() {
     const allRRs = statsTrades.map((t) => parseFloat(t.riskRewardRatio) || 0);
     const bestRR = allRRs.length > 0 ? Math.max(...allRRs) : 0;
 
+    // Calculate durations for closed trades
+    const closedTrades = statsTrades.filter(t => t.tradeDate && t.exitDate);
+    const durations = closedTrades
+      .map(t => {
+        const entry = t.tradeDate instanceof Date ? t.tradeDate : new Date(t.tradeDate);
+        const exit = t.exitDate instanceof Date ? t.exitDate : new Date(t.exitDate);
+        return exit.getTime() - entry.getTime();
+      })
+      .filter(d => d >= 0); // ignore anomalous values
+
+    const avgDuration = durations.length > 0
+      ? formatDurationMs(durations.reduce((sum, d) => sum + d, 0) / durations.length)
+      : "-";
+    const maxDuration = durations.length > 0
+      ? formatDurationMs(Math.max(...durations))
+      : "-";
+    const minDuration = durations.length > 0
+      ? formatDurationMs(Math.min(...durations))
+      : "-";
+
     // Calculate starting balance of the active period
     let startOfPeriod;
     if (activePeriod === "custom") {
@@ -1522,6 +1552,9 @@ function App() {
       bestTrade,
       worstTrade,
       bestRR,
+      avgDuration,
+      maxDuration,
+      minDuration,
     };
   }, [
     filteredTrades,
@@ -2895,6 +2928,55 @@ function App() {
                                 icon={<Hash size={16} />}
                                 footer={<span>Volum Trading Akumulatif</span>}
                               />
+                            </div>
+                          );
+                        }
+
+                        if (widget.id === "stat_duration") {
+                          return (
+                            <div
+                              key="stat_duration"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <StatCard
+                                title="Durasi Trading"
+                                icon={<Clock size={16} />}
+                                footer={<span>Statistik durasi trading tertutup</span>}
+                              >
+                                <div className="flex flex-col items-center justify-center w-full my-1">
+                                  <div className="text-center">
+                                    <p className="text-2xl font-black text-gray-900 dark:text-white bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                                      {performanceStats.avgDuration}
+                                    </p>
+                                    <p className="text-[10px] uppercase font-extrabold text-gray-400 dark:text-gray-500 tracking-wider mt-0.5">
+                                      Rata-Rata
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between w-full mt-4 pt-3 border-t border-gray-150 dark:border-gray-700/50">
+                                    <div className="text-center flex-1">
+                                      <p className="text-xs font-bold text-green-600 dark:text-green-400">
+                                        {performanceStats.minDuration}
+                                      </p>
+                                      <p className="text-[9px] text-gray-400 dark:text-gray-500">Terpendek</p>
+                                    </div>
+                                    <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+                                    <div className="text-center flex-1">
+                                      <p className="text-xs font-bold text-red-600 dark:text-red-400">
+                                        {performanceStats.maxDuration}
+                                      </p>
+                                      <p className="text-[9px] text-gray-400 dark:text-gray-500">Terlama</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </StatCard>
                             </div>
                           );
                         }
