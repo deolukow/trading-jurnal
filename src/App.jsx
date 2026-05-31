@@ -55,6 +55,8 @@ import {
   CloudUpload,
   CloudDownload,
   Clock,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 // modular components
@@ -114,6 +116,7 @@ function App() {
 
   const [toast, setToast] = useState({ message: "", type: "" });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopSidebarVisible, setIsDesktopSidebarVisible] = useState(true);
   const [isTradeFormVisible, setIsTradeFormVisible] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [viewingTrade, setViewingTrade] = useState(null);
@@ -2226,18 +2229,30 @@ function App() {
           </>
         )}
 
-        <aside className="w-64 bg-white dark:bg-gray-800 p-4 flex-shrink-0 flex-col hidden md:flex overflow-y-auto">
-          <SidebarContent />
-        </aside>
+        {isDesktopSidebarVisible && (
+          <aside className="w-64 bg-white dark:bg-gray-800 p-4 flex-shrink-0 flex-col hidden md:flex overflow-y-auto border-r border-gray-100 dark:border-gray-700/30">
+            <SidebarContent />
+          </aside>
+        )}
 
         <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Mobile Sidebar Toggle */}
               <button
-                className="md:hidden text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                className="md:hidden text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 onClick={() => setIsSidebarOpen(true)}
               >
-                <Menu size={28} />
+                <Menu size={26} />
+              </button>
+
+              {/* Desktop Sidebar Toggle Button */}
+              <button
+                onClick={() => setIsDesktopSidebarVisible(!isDesktopSidebarVisible)}
+                className="hidden md:flex items-center justify-center p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border border-gray-200 dark:border-gray-700/60 rounded-xl transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+                title={isDesktopSidebarVisible ? "Sembunyikan Sidebar" : "Tampilkan Sidebar"}
+              >
+                {isDesktopSidebarVisible ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
               </button>
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white truncate">
                 {activeView === "dashboard"
