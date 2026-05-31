@@ -84,6 +84,7 @@ import { StatisticsDashboard } from "./components/dashboard/StatisticsDashboard"
 import { AccountBalanceChart } from "./components/dashboard/AccountBalanceChart";
 import { DateRangePicker } from "./components/dashboard/DateRangePicker";
 import { YearSelector } from "./components/dashboard/YearSelector";
+import { MonthYearSelector } from "./components/dashboard/MonthYearSelector";
 import { FieldPerformanceTable } from "./components/dashboard/FieldPerformanceTable";
 import { ProfileSelector } from "./components/dashboard/ProfileSelector";
 import { StatCard } from "./components/dashboard/StatCard";
@@ -147,6 +148,9 @@ function App() {
   );
   const [selectedYear, setSelectedYear] = useState(
     String(new Date().getFullYear()),
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    String(new Date().getMonth()),
   );
   const [isDashboardSyncing, setIsDashboardSyncing] = useState(false);
 
@@ -1261,6 +1265,17 @@ function App() {
       );
     }
 
+    if (activePeriod === "monthly") {
+      const yearNumber = parseInt(selectedYear, 10);
+      const monthNumber = parseInt(selectedMonth, 10);
+      if (!yearNumber || String(yearNumber).length < 4 || isNaN(monthNumber)) return [];
+      return trades.filter((t) => {
+        if (!t.tradeDate) return false;
+        const d = new Date(t.tradeDate);
+        return d.getFullYear() === yearNumber && d.getMonth() === monthNumber;
+      });
+    }
+
     const getStartOfDate = (dateString) => {
       const date = new Date(dateString);
       date.setHours(0, 0, 0, 0);
@@ -1320,6 +1335,7 @@ function App() {
     customStartDate,
     customEndDate,
     selectedYear,
+    selectedMonth,
   ]);
 
   const requestSort = (key) => {
@@ -1517,11 +1533,11 @@ function App() {
           startOfPeriod.setHours(0, 0, 0, 0);
           break;
         case "monthly":
-          startOfPeriod.setDate(1);
+          startOfPeriod = new Date(parseInt(selectedYear, 10), parseInt(selectedMonth, 10), 1);
           startOfPeriod.setHours(0, 0, 0, 0);
           break;
         case "yearly":
-          startOfPeriod.setMonth(0, 1);
+          startOfPeriod = new Date(parseInt(selectedYear, 10), 0, 1);
           startOfPeriod.setHours(0, 0, 0, 0);
           break;
         default:
@@ -1587,6 +1603,8 @@ function App() {
     customStartDate,
     balanceTransactions,
     trades,
+    selectedYear,
+    selectedMonth,
   ]);
 
   const accountStats = useMemo(() => {
@@ -1646,7 +1664,18 @@ function App() {
       let startOfPeriod;
       let endOfPeriod = new Date();
 
-      if (activePeriod === "custom") {
+      if (activePeriod === "yearly") {
+        const yr = parseInt(selectedYear, 10);
+        startOfPeriod = new Date(yr, 0, 1);
+        startOfPeriod.setHours(0, 0, 0, 0);
+        endOfPeriod = new Date(yr, 11, 31, 23, 59, 59, 999);
+      } else if (activePeriod === "monthly") {
+        const yr = parseInt(selectedYear, 10);
+        const mn = parseInt(selectedMonth, 10);
+        startOfPeriod = new Date(yr, mn, 1);
+        startOfPeriod.setHours(0, 0, 0, 0);
+        endOfPeriod = new Date(yr, mn + 1, 0, 23, 59, 59, 999);
+      } else if (activePeriod === "custom") {
         if (!customStartDate || !customEndDate) return [];
         startOfPeriod = new Date(customStartDate);
         startOfPeriod.setHours(0, 0, 0, 0);
@@ -1664,14 +1693,6 @@ function App() {
             startOfPeriod.setDate(now.getDate() - d + (d === 0 ? -6 : 1));
             startOfPeriod.setHours(0, 0, 0, 0);
             break;
-          case "monthly":
-            startOfPeriod.setDate(1);
-            startOfPeriod.setHours(0, 0, 0, 0);
-            break;
-          case "yearly":
-            startOfPeriod.setMonth(0, 1);
-            startOfPeriod.setHours(0, 0, 0, 0);
-            break;
           default:
             break;
         }
@@ -1686,7 +1707,7 @@ function App() {
 
       const filteredData = sourceData.filter((d) => {
         const eventDate = new Date(d.name).getTime();
-        if (activePeriod === "custom") {
+        if (activePeriod === "custom" || activePeriod === "monthly" || activePeriod === "yearly") {
           return (
             eventDate >= startOfPeriod.getTime() &&
             eventDate <= endOfPeriod.getTime()
@@ -1716,6 +1737,8 @@ function App() {
     chartType,
     customStartDate,
     customEndDate,
+    selectedYear,
+    selectedMonth,
   ]);
 
   const currentBalance = useMemo(() => {
@@ -2352,6 +2375,14 @@ function App() {
                 )}
                 {activePeriod === "yearly" && (
                   <YearSelector
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
+                  />
+                )}
+                {activePeriod === "monthly" && (
+                  <MonthYearSelector
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
                     selectedYear={selectedYear}
                     setSelectedYear={setSelectedYear}
                   />
