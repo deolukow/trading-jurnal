@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ListPlus, Plus, Edit3, Trash2 } from "lucide-react";
+import { ListPlus, Plus, Edit3, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { addItem, updateItem } from "../../config/db";
 
 export const CustomFieldManagementModal = ({
@@ -99,6 +99,7 @@ export const CustomFieldManagementModal = ({
       name: name,
       type: fieldType,
       options: fieldType === "dropdown" ? dropdownOptions : [],
+      order: editingField && editingField.order !== undefined ? editingField.order : customFields.length,
       createdAt: editingField ? editingField.createdAt : new Date(),
       updatedAt: new Date(),
     };
@@ -115,6 +116,40 @@ export const CustomFieldManagementModal = ({
       if (onRefresh) await onRefresh();
     } catch (err) {
       showToast("Gagal menyimpan field", "error");
+    }
+  };
+
+  const handleMoveField = async (fieldId, direction) => {
+    const sortedFields = [...customFields].sort((a, b) => {
+      const aOrder = a.order !== undefined ? a.order : new Date(a.createdAt).getTime();
+      const bOrder = b.order !== undefined ? b.order : new Date(b.createdAt).getTime();
+      return aOrder - bOrder;
+    });
+
+    const index = sortedFields.findIndex((f) => f.id === fieldId);
+    if (index === -1) return;
+
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sortedFields.length) return;
+
+    // Swap elements
+    const temp = sortedFields[index];
+    sortedFields[index] = sortedFields[targetIndex];
+    sortedFields[targetIndex] = temp;
+
+    try {
+      for (let i = 0; i < sortedFields.length; i++) {
+        const field = sortedFields[i];
+        await updateItem("custom_fields", {
+          ...field,
+          order: i,
+          updatedAt: new Date(),
+        });
+      }
+      showToast("Urutan field berhasil diperbarui", "success");
+      if (onRefresh) await onRefresh();
+    } catch (err) {
+      showToast("Gagal memperbarui urutan field", "error");
     }
   };
 
@@ -301,7 +336,7 @@ export const CustomFieldManagementModal = ({
                   Belum ada field tambahan.
                 </p>
               ) : (
-                customFields.map((f) => (
+                customFields.map((f, idx) => (
                   <div
                     key={f.id}
                     className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex justify-between items-center group transition-all"
@@ -316,23 +351,48 @@ export const CustomFieldManagementModal = ({
                           : "Teks Bebas"}
                       </span>
                     </div>
-                    <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(f)}
-                        className="p-1.5 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 rounded"
-                        title="Edit Field"
-                      >
-                        <Edit3 size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openDeleteModal("custom_field", f)}
-                        className="p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded"
-                        title="Hapus Field"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                    <div className="flex items-center space-x-1">
+                      {/* Move controls */}
+                      <div className="flex space-x-0.5 mr-1 border-r border-gray-200 dark:border-gray-600 pr-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveField(f.id, "up")}
+                          disabled={idx === 0}
+                          className="p-1 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-20 disabled:hover:text-gray-400 disabled:hover:bg-transparent transition-colors"
+                          title="Pindahkan Ke Atas"
+                        >
+                          <ArrowUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveField(f.id, "down")}
+                          disabled={idx === customFields.length - 1}
+                          className="p-1 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-20 disabled:hover:text-gray-400 disabled:hover:bg-transparent transition-colors"
+                          title="Pindahkan Ke Bawah"
+                        >
+                          <ArrowDown size={16} />
+                        </button>
+                      </div>
+
+                      {/* Edit / Delete controls */}
+                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(f)}
+                          className="p-1.5 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 rounded"
+                          title="Edit Field"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openDeleteModal("custom_field", f)}
+                          className="p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                          title="Hapus Field"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))

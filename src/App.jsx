@@ -895,7 +895,13 @@ function App() {
     setTrades(tradesData);
     setPairs(pairsData.sort((a, b) => a.createdAt - b.createdAt));
     setTemplates(templatesData.sort((a, b) => a.name.localeCompare(b.name)));
-    setCustomFields(customFieldsData.sort((a, b) => a.createdAt - b.createdAt));
+    setCustomFields(
+      customFieldsData.sort((a, b) => {
+        const aOrder = a.order !== undefined ? a.order : new Date(a.createdAt).getTime();
+        const bOrder = b.order !== undefined ? b.order : new Date(b.createdAt).getTime();
+        return aOrder - bOrder;
+      })
+    );
     setBalanceTransactions(balanceData.sort((a, b) => new Date(b.date) - new Date(a.date)));
     setStrategies(strategiesData.sort((a, b) => b.createdAt - a.createdAt));
     setGoalSettings(goalData);
