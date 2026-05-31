@@ -65,7 +65,7 @@ export const CalendarView = ({
           // Capture the pointer NOW that we are certain it's a drag swipe!
           try {
             e.currentTarget.setPointerCapture(pointerId.current);
-          } catch (err) {}
+          } catch (err) { }
         } else {
           // If vertical swipe dominates (e.g. page scrolling), cancel swipe
           setIsDragging(false);
@@ -84,7 +84,7 @@ export const CalendarView = ({
 
     try {
       e.currentTarget.releasePointerCapture(pointerId.current);
-    } catch (err) {}
+    } catch (err) { }
 
     setIsDragging(false);
     pointerId.current = null;
@@ -177,7 +177,7 @@ export const CalendarView = ({
       { value: 11, label: "Desember" },
     ];
     return (
-      <div className="flex justify-between items-center p-4 md:p-6 bg-gradient-to-r from-gray-50/20 via-white/40 to-gray-50/20 dark:from-gray-900/40 dark:via-gray-800/10 dark:to-gray-900/40 backdrop-blur-md border-b border-gray-200/20 dark:border-gray-700/30">
+      <div className="flex justify-between items-center p-4 md:p-6 bg-gray-50/40 dark:bg-gray-900/30 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={() =>
@@ -189,7 +189,7 @@ export const CalendarView = ({
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        
+
         <div className="flex flex-col items-center">
           <div className="flex items-center space-x-1 bg-gray-100/50 dark:bg-gray-800/40 border border-gray-200/30 dark:border-gray-700/30 p-1 rounded-xl shadow-inner backdrop-blur-sm">
             <select
@@ -224,7 +224,7 @@ export const CalendarView = ({
               ))}
             </select>
           </div>
-          
+
           <div className="mt-2.5">
             <span
               className={classNames(
@@ -269,12 +269,12 @@ export const CalendarView = ({
     startDate.setDate(startDate.getDate() - monthStart.getDay());
     const rows = [];
     let day = new Date(startDate);
-    
+
     for (let i = 0; i < 6; i++) {
       const daysInWeek = [];
       let weeklyPnl = 0;
       let weeklyTradeDays = 0;
-      
+
       for (let j = 0; j < 7; j++) {
         const cloneDay = new Date(day);
         const dayStr = formatDate(cloneDay);
@@ -286,26 +286,26 @@ export const CalendarView = ({
         const winRate = dayData
           ? (dayData.wins / (dayData.wins + dayData.losses)) * 100
           : 0;
-          
+
         daysInWeek.push(
           <div
             key={day.toString()}
             className={classNames(
-              "relative p-2 h-28 md:h-32 rounded-xl flex flex-col justify-between transition-all duration-300 select-none border backdrop-blur-sm",
+              "relative p-2 h-20 md:h-24 rounded-xl flex flex-col justify-between transition-all duration-300 select-none border backdrop-blur-sm",
               day.getMonth() !== currentDate.getMonth()
-                ? "opacity-30 text-gray-400 dark:text-gray-650 bg-gray-50/10 dark:bg-gray-900/5 border-gray-200/5 dark:border-gray-800/5 pointer-events-none"
-                : "text-gray-700 dark:text-gray-300 border-gray-200/40 dark:border-gray-800/30 bg-white/40 dark:bg-gray-800/15",
+                ? "opacity-30 text-gray-400 dark:text-gray-650 bg-gray-55/10 dark:bg-gray-900/5 border-gray-200/5 dark:border-gray-800/5 pointer-events-none"
+                : "text-gray-850 dark:text-gray-200 border-gray-200 dark:border-gray-700/80 bg-white dark:bg-gray-800/40",
               dayData
                 ? "cursor-pointer hover:-translate-y-0.5 shadow-sm"
                 : "hover:bg-gray-100/30 dark:hover:bg-gray-800/10",
               dayData && dayData.pnl > 0
-                ? "bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border-green-500/25 hover:border-green-500/60 dark:from-green-950/45 dark:via-green-950/20 dark:to-transparent dark:border-green-500/20 dark:hover:border-green-500/50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(0,230,118,0.03)] hover:shadow-[0_4px_16px_rgba(0,230,118,0.12)] text-green-850 dark:text-green-300"
+                ? "bg-gradient-to-br from-green-500/15 via-green-500/5 to-transparent border-green-500/35 hover:border-green-500/60 dark:from-green-950/60 dark:via-green-950/20 dark:to-transparent dark:border-green-500/30 dark:hover:border-green-500/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(0,230,118,0.05)] hover:shadow-[0_4px_16px_rgba(0,230,118,0.15)] text-green-900 dark:text-green-200"
                 : "",
               dayData && dayData.pnl < 0
-                ? "bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border-red-500/25 hover:border-red-500/60 dark:from-red-950/35 dark:via-red-950/15 dark:to-transparent dark:border-red-500/20 dark:hover:border-red-500/50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(255,23,68,0.03)] hover:shadow-[0_4px_16px_rgba(255,23,68,0.12)] text-red-850 dark:text-red-300"
+                ? "bg-gradient-to-br from-red-500/15 via-red-500/5 to-transparent border-red-500/35 hover:border-red-500/60 dark:from-red-950/50 dark:via-red-950/15 dark:to-transparent dark:border-red-500/30 dark:hover:border-red-500/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(255,23,68,0.05)] hover:shadow-[0_4px_16px_rgba(255,23,68,0.15)] text-red-900 dark:text-red-200"
                 : "",
               dayData && dayData.pnl === 0
-                ? "bg-gradient-to-br from-gray-500/10 to-transparent border-gray-500/20 hover:border-gray-500/40 dark:border-gray-700/30 dark:hover:border-gray-700/60 text-gray-700 dark:text-gray-300"
+                ? "bg-gradient-to-br from-gray-500/15 to-transparent border-gray-500/30 hover:border-gray-500/50 dark:border-gray-700/40 dark:hover:border-gray-700/70 text-gray-800 dark:text-gray-200"
                 : "",
               formatDate(selectedDate) === dayStr
                 ? "ring-2 ring-blue-500 border-transparent dark:ring-blue-500 shadow-[0_0_15px_rgba(124,58,237,0.3)] z-10"
@@ -316,15 +316,15 @@ export const CalendarView = ({
             <div className="flex justify-between items-start w-full">
               <span
                 className={classNames(
-                  "text-[11px] md:text-xs font-semibold px-1.5 py-0.5 rounded-md",
+                  "text-xs md:text-sm font-bold px-1.5 py-0.5 rounded-md",
                   formatDate(new Date()) === dayStr
-                    ? "text-blue-600 dark:text-blue-400 font-bold bg-blue-500/10 dark:bg-blue-500/25 border border-blue-500/20 dark:border-blue-500/30 shadow-[0_0_8px_rgba(124,58,237,0.15)]"
-                    : "text-gray-500 dark:text-gray-400",
+                    ? "text-blue-600 dark:text-blue-200 font-extrabold bg-blue-500/10 dark:bg-blue-500/30 border border-blue-500/20 dark:border-blue-500/40 shadow-[0_0_8px_rgba(124,58,237,0.15)]"
+                    : "text-gray-800 dark:text-white",
                 )}
               >
                 {cloneDay.getDate()}
               </span>
-              
+
               {formatDate(new Date()) === dayStr && (
                 <span className="relative flex h-1.5 w-1.5 mt-1 mr-0.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -332,7 +332,7 @@ export const CalendarView = ({
                 </span>
               )}
             </div>
-            
+
             {dayData && (
               <div className="mt-1 flex-grow flex flex-col justify-end gap-0.5">
                 <p
@@ -345,12 +345,12 @@ export const CalendarView = ({
                 >
                   {formatCurrency(dayData.pnl, currency)}
                 </p>
-                
+
                 <div className="flex justify-between items-center text-[9px] md:text-[10px] text-gray-500/80 dark:text-gray-400/70 font-medium">
                   <span>
                     {dayData.trades.length} {dayData.trades.length > 1 ? "Trades" : "Trade"}
                   </span>
-                  
+
                   {!isNaN(winRate) && (
                     <span
                       className={classNames(
@@ -370,14 +370,14 @@ export const CalendarView = ({
         );
         day.setDate(day.getDate() + 1);
       }
-      
+
       rows.push(
         <div className="grid grid-cols-8 gap-1.5 md:gap-2" key={`week-${i}`}>
           {daysInWeek}
-          
+
           <div
             className={classNames(
-              "p-2 h-28 md:h-32 rounded-xl flex flex-col justify-between items-center text-center transition-all duration-300 border border-dashed select-none animate-fadeIn",
+              "p-2 h-20 md:h-24 rounded-xl flex flex-col justify-between items-center text-center transition-all duration-300 border border-dashed select-none animate-fadeIn",
               weeklyTradeDays > 0
                 ? "bg-gradient-to-b from-blue-950/20 via-blue-900/5 to-transparent border-blue-500/20 dark:border-blue-500/10 text-gray-700 dark:text-gray-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]"
                 : "bg-gray-50/20 dark:bg-gray-900/5 border-gray-200/20 dark:border-gray-800/10 text-gray-400 dark:text-gray-650",
@@ -386,7 +386,7 @@ export const CalendarView = ({
             <span className="text-[9px] md:text-[10px] uppercase tracking-wider font-extrabold text-blue-500 dark:text-blue-400 drop-shadow-[0_0_8px_rgba(124,58,237,0.1)]">
               MGG {i + 1}
             </span>
-            
+
             {weeklyTradeDays > 0 ? (
               <div className="flex-grow flex flex-col justify-end w-full">
                 <p
@@ -414,7 +414,7 @@ export const CalendarView = ({
         </div>,
       );
     }
-    return <div className="flex flex-col gap-1.5 md:gap-2 p-3 bg-gray-50/30 dark:bg-gray-950/20 rounded-b-2xl">{rows}</div>;
+    return <div className="flex flex-col gap-1.5 md:gap-2 p-3 bg-gray-50/80 dark:bg-gray-950/50 rounded-b-2xl">{rows}</div>;
   };
 
   const selectedTrades = useMemo(() => {
@@ -430,7 +430,7 @@ export const CalendarView = ({
   return (
     <div className="animate-fadeIn select-none">
       <div
-        className="bg-white/40 dark:bg-gray-800/25 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] border border-gray-200/50 dark:border-gray-700/30 overflow-hidden touch-pan-y backdrop-blur-lg"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700 overflow-hidden touch-pan-y backdrop-blur-md"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -443,11 +443,11 @@ export const CalendarView = ({
           }}
         >
           {renderHeader()}
-          <div className="grid grid-cols-8 text-center font-bold text-gray-400 dark:text-gray-500 text-[10px] tracking-widest uppercase py-3 border-b border-gray-200/10 dark:border-gray-700/30 px-3 bg-gray-50/40 dark:bg-gray-900/20">
+          <div className="grid grid-cols-8 text-center font-extrabold text-gray-700 dark:text-gray-100 text-xs md:text-sm tracking-wider uppercase py-3 border-b border-gray-200/10 dark:border-gray-700/30 px-3 bg-gray-50/40 dark:bg-gray-900/20">
             {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((day) => (
               <div key={day} className="select-none">{day}</div>
             ))}
-            <div className="text-blue-500 dark:text-blue-400 font-extrabold uppercase select-none">Mingguan</div>
+            <div className="text-blue-600 dark:text-blue-400 font-black uppercase select-none">Mingguan</div>
           </div>
           {renderCells()}
         </div>
