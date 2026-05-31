@@ -30,6 +30,7 @@ export const TradeForm = ({
       stopLoss: "",
       riskRewardRatio: "0",
       customData: {},
+      criteriaChecked: [],
     };
     customFields.forEach((field) => {
       baseData.customData[field.name] = "";
@@ -103,6 +104,7 @@ export const TradeForm = ({
           entryPrice: String(editingTrade.entryPrice || ""),
           takeProfit: String(editingTrade.takeProfit || ""),
           stopLoss: String(editingTrade.stopLoss || ""),
+          criteriaChecked: editingTrade.criteriaChecked || [],
         }
       : initialTradeData;
 
@@ -162,7 +164,17 @@ export const TradeForm = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (name === "setup") {
+        if (editingTrade && editingTrade.setup === value) {
+          updated.criteriaChecked = editingTrade.criteriaChecked || [];
+        } else {
+          updated.criteriaChecked = [];
+        }
+      }
+      return updated;
+    });
     setSelectedTemplate("");
   };
 
@@ -312,6 +324,11 @@ export const TradeForm = ({
       </div>
     );
   };
+
+  const activeStrategy = useMemo(() => {
+    if (!strategies || !formData.setup) return null;
+    return strategies.find((s) => s.title === formData.setup);
+  }, [strategies, formData.setup]);
 
   return (
     <div 
@@ -536,6 +553,54 @@ export const TradeForm = ({
                 )}
             </select>
           </div>
+
+          {/* Dynamic Strategy Entry Criteria Checklist */}
+          {activeStrategy && activeStrategy.checklists && activeStrategy.checklists.length > 0 && (
+            <div className="md:col-span-3 bg-gray-50/50 dark:bg-gray-900/35 border border-gray-200/60 dark:border-gray-700/60 p-4 rounded-xl space-y-3 shadow-inner">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-gray-500 dark:text-gray-400">
+                  Konfirmasi Setup / Entry Criteria Checklist
+                </span>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full border border-blue-500/20">
+                  {formData.criteriaChecked ? formData.criteriaChecked.length : 0} dari {activeStrategy.checklists.length} terpenuhi
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {activeStrategy.checklists.map((criterion, idx) => {
+                  const isChecked = formData.criteriaChecked && formData.criteriaChecked.includes(criterion);
+                  return (
+                    <label
+                      key={idx}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer select-none transition-all duration-300 ${
+                        isChecked
+                          ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300 shadow-[0_0_8px_rgba(34,197,94,0.08)]"
+                          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-650 text-gray-600 dark:text-gray-400"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData((prev) => {
+                            const list = prev.criteriaChecked || [];
+                            const newList = checked
+                              ? [...list, criterion]
+                              : list.filter((item) => item !== criterion);
+                            return { ...prev, criteriaChecked: newList };
+                          });
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
+                      />
+                      <span className="text-xs font-semibold leading-tight">
+                        {criterion}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <input
             type="number"

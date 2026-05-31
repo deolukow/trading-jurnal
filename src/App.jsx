@@ -2026,6 +2026,7 @@ function App() {
             customFields={customFields}
             currency={activeProfile?.currency}
             activeProfileName={activeProfile?.name}
+            strategies={strategies}
           />
         )}
         {showDashboardShareModal && (() => {

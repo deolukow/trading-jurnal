@@ -7,13 +7,14 @@ import {
   ArrowDownRight,
   Maximize2,
   Share2,
+  CheckCircle,
 } from "lucide-react";
 import { useLocalImage } from "../../hooks/useLocalImage";
 import { FullscreenImageModal } from "./FullscreenImageModal";
 import { ShareCardModal } from "./ShareCardModal";
 import { formatDateTime, formatCurrency, formatLotSize, formatDuration } from "../../utils/formatters";
 
-export const TradeDetailModal = ({ trade, onClose, customFields, currency, activeProfileName }) => {
+export const TradeDetailModal = ({ trade, onClose, customFields, currency, activeProfileName, strategies = [] }) => {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(-1);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -85,6 +86,11 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
     }
     return list;
   }, [beforeImageUrl, afterImageUrl]);
+
+  const activeStrategy = useMemo(() => {
+    if (!strategies || !trade || !trade.setup) return null;
+    return strategies.find((s) => s.title === trade.setup);
+  }, [strategies, trade]);
 
   if (!trade) return null;
 
@@ -363,6 +369,45 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                   }}
                 />
               </div>
+
+              {/* Checklist Kriteria Strategy / Setup SOP Review */}
+              {activeStrategy && activeStrategy.checklists && activeStrategy.checklists.length > 0 && (
+                <div className="bg-gray-50/50 dark:bg-gray-900/35 border border-gray-200 dark:border-gray-700/60 p-4 rounded-xl space-y-3 shadow-inner">
+                  <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-700/60">
+                    <h4 className="text-[10px] uppercase font-extrabold tracking-wider text-gray-500 dark:text-gray-400">
+                      SOP Entry Criteria Verification
+                    </h4>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full border border-green-500/20">
+                      {trade.criteriaChecked ? trade.criteriaChecked.length : 0} dari {activeStrategy.checklists.length} Syarat Terpenuhi
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {activeStrategy.checklists.map((criterion, idx) => {
+                      const isChecked = trade.criteriaChecked && trade.criteriaChecked.includes(criterion);
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-3 p-3 rounded-lg border select-none transition-all duration-300 ${
+                            isChecked
+                              ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300 shadow-[0_0_8px_rgba(34,197,94,0.05)]"
+                              : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/70 text-gray-400 dark:text-gray-500 line-through decoration-gray-300 dark:decoration-gray-600"
+                          }`}
+                        >
+                          {isChecked ? (
+                            <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
+                          ) : (
+                            <div className="h-4 w-4 rounded-full border border-gray-300 dark:border-gray-650 flex items-center justify-center flex-shrink-0 text-red-500 dark:text-red-400 font-bold text-[10px] select-none bg-gray-50 dark:bg-gray-850">&times;</div>
+                          )}
+                          <span className="text-xs font-semibold leading-tight">
+                            {criterion}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 text-xs">
                   Catatan Trade
