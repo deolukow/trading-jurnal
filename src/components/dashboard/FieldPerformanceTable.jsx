@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
+import { formatCurrency } from "../../utils/formatters";
 
-export const FieldPerformanceTable = ({ trades, customFields }) => {
+export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }) => {
   const [selectedField, setSelectedField] = useState("pair");
 
   const standardFields = useMemo(
@@ -48,12 +49,14 @@ export const FieldPerformanceTable = ({ trades, customFields }) => {
           count: 0,
           wins: 0,
           losses: 0,
+          totalPnl: 0,
           totalRR: 0,
           dayIndex: dayIndex,
         };
       }
 
       groups[value].count++;
+      groups[value].totalPnl += trade.pnl || 0;
       if (trade.pnl > 0) groups[value].wins++;
       else if (trade.pnl < 0) groups[value].losses++;
 
@@ -116,6 +119,9 @@ export const FieldPerformanceTable = ({ trades, customFields }) => {
               <th scope="col" className="p-3 text-center">
                 Win Rate
               </th>
+              <th scope="col" className="p-3 text-right">
+                Total P&L
+              </th>
               <th scope="col" className="p-3 text-center">
                 Total Win
               </th>
@@ -133,7 +139,7 @@ export const FieldPerformanceTable = ({ trades, customFields }) => {
           <tbody>
             {performanceData.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center p-6 text-gray-500">
+                <td colSpan="9" className="text-center p-6 text-gray-500">
                   Tidak ada data untuk ditampilkan pada periode ini.
                 </td>
               </tr>
@@ -160,6 +166,15 @@ export const FieldPerformanceTable = ({ trades, customFields }) => {
                     >
                       {data.winrate.toFixed(1)}%
                     </span>
+                  </td>
+                  <td
+                    className={`p-3 text-right font-bold ${
+                      data.totalPnl >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {formatCurrency(data.totalPnl, currency)}
                   </td>
                   <td className="p-3 text-center text-green-600 dark:text-green-400 font-medium">
                     {data.wins}
