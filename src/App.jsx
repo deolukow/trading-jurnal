@@ -1743,13 +1743,30 @@ function App() {
         href="https://www.instagram.com/deolukow_"
         target="_blank"
         rel="noopener noreferrer"
-        className="block mb-4 hover:opacity-80 transition-opacity"
+        className="block mb-6 hover:opacity-90 transition-opacity select-none group"
       >
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Wz<span className="text-blue-500 dark:text-blue-400">Gold</span>{" "}
-          Trading Jurnal
-        </h1>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+        <div className="flex items-center">
+          {/* Left portion: WzGold in elegant bold italic */}
+          <span className="text-2xl font-black italic tracking-tighter text-gray-900 dark:text-white">
+            Wz<span className="text-amber-500 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.2)]">Gold</span>
+          </span>
+          
+          {/* Thin vertical divider line */}
+          <div className="w-[1.5px] h-8 bg-gray-300 dark:bg-gray-700/80 mx-3"></div>
+          
+          {/* Right portion: Trading Jurnal stacked vertically */}
+          <div className="flex flex-col justify-center leading-none text-left">
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
+              Trading
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 dark:text-blue-400 mt-0.5">
+              Jurnal
+            </span>
+          </div>
+        </div>
+        
+        {/* Subtle developer credit subtext */}
+        <p className="text-[9px] text-gray-400 dark:text-gray-600 mt-2 font-medium tracking-wide uppercase group-hover:text-gray-500 dark:group-hover:text-gray-500 transition-colors pl-0.5">
           created by Deo Lukow (2025)
         </p>
       </a>
