@@ -176,7 +176,7 @@ export const CalendarView = ({
       { value: 11, label: "Desember" },
     ];
     return (
-      <div className="flex justify-between items-center p-4">
+      <div className="flex justify-between items-center p-4 md:p-6 bg-gradient-to-r from-gray-50/20 via-white/40 to-gray-50/20 dark:from-gray-900/40 dark:via-gray-800/10 dark:to-gray-900/40 backdrop-blur-md border-b border-gray-200/20 dark:border-gray-700/30">
         <button
           type="button"
           onClick={() =>
@@ -184,12 +184,13 @@ export const CalendarView = ({
               (p) => new Date(p.getFullYear(), p.getMonth() - 1, 1),
             )
           }
-          className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+          className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 bg-gray-100/50 dark:bg-gray-800/40 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-700/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 hover:shadow-[0_0_10px_rgba(124,58,237,0.15)] transition-all duration-300 transform active:scale-95 cursor-pointer"
         >
-          <ChevronLeft />
+          <ChevronLeft className="w-5 h-5" />
         </button>
+        
         <div className="flex flex-col items-center">
-          <div className="flex space-x-3">
+          <div className="flex items-center space-x-1 bg-gray-100/50 dark:bg-gray-800/40 border border-gray-200/30 dark:border-gray-700/30 p-1 rounded-xl shadow-inner backdrop-blur-sm">
             <select
               value={currentMonth}
               onChange={(e) =>
@@ -197,14 +198,15 @@ export const CalendarView = ({
                   (p) => new Date(p.getFullYear(), parseInt(e.target.value), 1),
                 )
               }
-              className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold py-2 px-3 rounded-lg appearance-none cursor-pointer"
+              className="bg-transparent text-gray-900 dark:text-white font-bold py-1.5 px-3 rounded-lg cursor-pointer outline-none hover:bg-gray-200/60 dark:hover:bg-gray-700/60 transition-colors text-xs md:text-sm select-none"
             >
               {months.map((m) => (
-                <option key={m.value} value={m.value}>
+                <option key={m.value} value={m.value} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-medium">
                   {m.label}
                 </option>
               ))}
             </select>
+            <div className="w-[1px] h-4 bg-gray-300 dark:bg-gray-700"></div>
             <select
               value={currentYear}
               onChange={(e) =>
@@ -212,28 +214,35 @@ export const CalendarView = ({
                   (p) => new Date(parseInt(e.target.value), p.getMonth(), 1),
                 )
               }
-              className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold py-2 px-3 rounded-lg appearance-none cursor-pointer"
+              className="bg-transparent text-gray-900 dark:text-white font-bold py-1.5 px-3 rounded-lg cursor-pointer outline-none hover:bg-gray-200/60 dark:hover:bg-gray-700/60 transition-colors text-xs md:text-sm select-none"
             >
               {years.map((y) => (
-                <option key={y} value={y}>
+                <option key={y} value={y} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-medium">
                   {y}
                 </option>
               ))}
             </select>
           </div>
-          <div className="mt-2 text-sm">
-            <span className="text-gray-500 dark:text-gray-400 font-medium">
-              Total P&L Bulan Ini:{" "}
-            </span>
+          
+          <div className="mt-2.5">
             <span
-              className={`font-bold ${
-                monthlyPnl >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-              }`}
+              className={classNames(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-semibold backdrop-blur-md border shadow-sm transition-all duration-300",
+                monthlyPnl >= 0
+                  ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(0,230,118,0.06)]"
+                  : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(255,23,68,0.06)]",
+              )}
             >
-              {formatCurrency(monthlyPnl, currency)}
+              <span className="text-gray-500 dark:text-gray-400/80 font-medium">
+                P&L Bulan Ini:
+              </span>
+              <span className="font-extrabold tracking-tight">
+                {formatCurrency(monthlyPnl, currency)}
+              </span>
             </span>
           </div>
         </div>
+
         <button
           type="button"
           onClick={() =>
@@ -241,9 +250,9 @@ export const CalendarView = ({
               (p) => new Date(p.getFullYear(), p.getMonth() + 1, 1),
             )
           }
-          className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+          className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 bg-gray-100/50 dark:bg-gray-800/40 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-700/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:text-blue-500 dark:hover:text-blue-400 hover:shadow-[0_0_10px_rgba(124,58,237,0.15)] transition-all duration-300 transform active:scale-95 cursor-pointer"
         >
-          <ChevronRight />
+          <ChevronRight className="w-5 h-5" />
         </button>
       </div>
     );
@@ -259,10 +268,12 @@ export const CalendarView = ({
     startDate.setDate(startDate.getDate() - monthStart.getDay());
     const rows = [];
     let day = new Date(startDate);
+    
     for (let i = 0; i < 6; i++) {
       const daysInWeek = [];
       let weeklyPnl = 0;
       let weeklyTradeDays = 0;
+      
       for (let j = 0; j < 7; j++) {
         const cloneDay = new Date(day);
         const dayStr = formatDate(cloneDay);
@@ -274,97 +285,135 @@ export const CalendarView = ({
         const winRate = dayData
           ? (dayData.wins / (dayData.wins + dayData.losses)) * 100
           : 0;
+          
         daysInWeek.push(
           <div
             key={day.toString()}
             className={classNames(
-              "relative p-2 h-28 md:h-32 border-t border-l border-gray-200 dark:border-gray-700 flex flex-col",
+              "relative p-2 h-28 md:h-32 rounded-xl flex flex-col justify-between transition-all duration-300 select-none border backdrop-blur-sm",
               day.getMonth() !== currentDate.getMonth()
-                ? "text-gray-500 dark:text-gray-600 bg-gray-50 dark:bg-gray-900/50"
-                : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800",
+                ? "opacity-30 text-gray-400 dark:text-gray-650 bg-gray-50/10 dark:bg-gray-900/5 border-gray-200/5 dark:border-gray-800/5 pointer-events-none"
+                : "text-gray-700 dark:text-gray-300 border-gray-200/40 dark:border-gray-800/30 bg-white/40 dark:bg-gray-800/15",
               dayData
-                ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                ? "cursor-pointer hover:-translate-y-0.5 shadow-sm"
+                : "hover:bg-gray-100/30 dark:hover:bg-gray-800/10",
+              dayData && dayData.pnl > 0
+                ? "bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border-green-500/25 hover:border-green-500/60 dark:from-green-950/45 dark:via-green-950/20 dark:to-transparent dark:border-green-500/20 dark:hover:border-green-500/50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(0,230,118,0.03)] hover:shadow-[0_4px_16px_rgba(0,230,118,0.12)] text-green-850 dark:text-green-300"
+                : "",
+              dayData && dayData.pnl < 0
+                ? "bg-gradient-to-br from-red-500/10 via-red-500/5 to-transparent border-red-500/25 hover:border-red-500/60 dark:from-red-950/35 dark:via-red-950/15 dark:to-transparent dark:border-red-500/20 dark:hover:border-red-500/50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(255,23,68,0.03)] hover:shadow-[0_4px_16px_rgba(255,23,68,0.12)] text-red-850 dark:text-red-300"
+                : "",
+              dayData && dayData.pnl === 0
+                ? "bg-gradient-to-br from-gray-500/10 to-transparent border-gray-500/20 hover:border-gray-500/40 dark:border-gray-700/30 dark:hover:border-gray-700/60 text-gray-700 dark:text-gray-300"
                 : "",
               formatDate(selectedDate) === dayStr
-                ? "bg-blue-600/20 dark:bg-blue-600/50 ring-2 ring-blue-400"
+                ? "ring-2 ring-blue-500 border-transparent dark:ring-blue-500 shadow-[0_0_15px_rgba(124,58,237,0.3)] z-10"
                 : "",
             )}
             onClick={() => handleDayClick(cloneDay)}
           >
-            <span
-              className={classNames(
-                "font-medium",
-                formatDate(new Date()) === dayStr
-                  ? "text-blue-500 dark:text-blue-400 font-bold"
-                  : "",
+            <div className="flex justify-between items-start w-full">
+              <span
+                className={classNames(
+                  "text-[11px] md:text-xs font-semibold px-1.5 py-0.5 rounded-md",
+                  formatDate(new Date()) === dayStr
+                    ? "text-blue-600 dark:text-blue-400 font-bold bg-blue-500/10 dark:bg-blue-500/25 border border-blue-500/20 dark:border-blue-500/30 shadow-[0_0_8px_rgba(124,58,237,0.15)]"
+                    : "text-gray-500 dark:text-gray-400",
+                )}
+              >
+                {cloneDay.getDate()}
+              </span>
+              
+              {formatDate(new Date()) === dayStr && (
+                <span className="relative flex h-1.5 w-1.5 mt-1 mr-0.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+                </span>
               )}
-            >
-              {cloneDay.getDate()}
-            </span>
+            </div>
+            
             {dayData && (
-              <div className="mt-1 text-xs flex-grow flex flex-col justify-end">
+              <div className="mt-1 flex-grow flex flex-col justify-end gap-0.5">
                 <p
                   className={classNames(
-                    "font-bold",
+                    "font-bold text-xs md:text-sm tracking-tight",
                     dayData.pnl > 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400",
+                      ? "text-green-600 dark:text-green-400 drop-shadow-[0_0_6px_rgba(0,230,118,0.1)]"
+                      : "text-red-600 dark:text-red-400 drop-shadow-[0_0_6px_rgba(255,23,68,0.1)]",
                   )}
                 >
                   {formatCurrency(dayData.pnl, currency)}
                 </p>
-                <p className="text-gray-500 dark:text-gray-400">
-                  {dayData.trades.length} trade
-                  {dayData.trades.length > 1 ? "s" : ""}
-                </p>
-                <p
-                  className={classNames(
-                    dayData.wins > dayData.losses
-                      ? "text-green-500"
-                      : "text-red-500",
+                
+                <div className="flex justify-between items-center text-[9px] md:text-[10px] text-gray-500/80 dark:text-gray-400/70 font-medium">
+                  <span>
+                    {dayData.trades.length} {dayData.trades.length > 1 ? "Trades" : "Trade"}
+                  </span>
+                  
+                  {!isNaN(winRate) && (
+                    <span
+                      className={classNames(
+                        "px-1 py-0.5 rounded text-[8px] font-bold uppercase",
+                        winRate >= 50
+                          ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/10"
+                          : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/10",
+                      )}
+                    >
+                      {winRate.toFixed(0)}% W
+                    </span>
                   )}
-                >
-                  {isNaN(winRate) ? "N/A" : `${winRate.toFixed(0)}% win`}
-                </p>
+                </div>
               </div>
             )}
           </div>,
         );
         day.setDate(day.getDate() + 1);
       }
+      
       rows.push(
-        <div className="grid grid-cols-8" key={`week-${i}`}>
+        <div className="grid grid-cols-8 gap-1.5 md:gap-2" key={`week-${i}`}>
           {daysInWeek}
-          <div className="p-2 h-28 md:h-32 border-t border-l border-r border-gray-200 dark:border-gray-700 flex flex-col justify-center items-center text-center bg-white dark:bg-gray-800">
+          
+          <div
+            className={classNames(
+              "p-2 h-28 md:h-32 rounded-xl flex flex-col justify-between items-center text-center transition-all duration-300 border border-dashed select-none animate-fadeIn",
+              weeklyTradeDays > 0
+                ? "bg-gradient-to-b from-blue-950/20 via-blue-900/5 to-transparent border-blue-500/20 dark:border-blue-500/10 text-gray-700 dark:text-gray-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]"
+                : "bg-gray-50/20 dark:bg-gray-900/5 border-gray-200/20 dark:border-gray-800/10 text-gray-400 dark:text-gray-650",
+            )}
+          >
+            <span className="text-[9px] md:text-[10px] uppercase tracking-wider font-extrabold text-blue-500 dark:text-blue-400 drop-shadow-[0_0_8px_rgba(124,58,237,0.1)]">
+              MGG {i + 1}
+            </span>
+            
             {weeklyTradeDays > 0 ? (
-              <>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Week {i + 1}
-                </p>
+              <div className="flex-grow flex flex-col justify-end w-full">
                 <p
                   className={classNames(
-                    "font-bold text-sm",
+                    "font-extrabold text-xs md:text-sm tracking-tight",
                     weeklyPnl > 0
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400",
+                      ? "text-green-500 dark:text-green-400 drop-shadow-[0_0_6px_rgba(0,230,118,0.15)]"
+                      : "text-red-500 dark:text-red-400 drop-shadow-[0_0_6px_rgba(255,23,68,0.15)]",
                   )}
                 >
                   {formatCurrency(weeklyPnl, currency)}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {weeklyTradeDays} hari
-                </p>
-              </>
+                <span className="text-[9px] text-gray-400/80 dark:text-gray-500 mt-1 font-medium">
+                  {weeklyTradeDays} Hari
+                </span>
+              </div>
             ) : (
-              <p className="text-xs text-gray-500 dark:text-gray-600">
-                Week {i + 1}
-              </p>
+              <div className="flex-grow flex flex-col justify-end">
+                <span className="text-[8px] text-gray-400/40 dark:text-gray-650/40 font-medium">
+                  Kosong
+                </span>
+              </div>
             )}
           </div>
         </div>,
       );
     }
-    return <div>{rows}</div>;
+    return <div className="flex flex-col gap-1.5 md:gap-2 p-3 bg-gray-50/30 dark:bg-gray-950/20 rounded-b-2xl">{rows}</div>;
   };
 
   const selectedTrades = useMemo(() => {
@@ -380,7 +429,7 @@ export const CalendarView = ({
   return (
     <div className="animate-fadeIn select-none">
       <div
-        className="bg-white/50 dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden touch-pan-y"
+        className="bg-white/40 dark:bg-gray-800/25 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] border border-gray-200/50 dark:border-gray-700/30 overflow-hidden touch-pan-y backdrop-blur-lg"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -393,11 +442,11 @@ export const CalendarView = ({
           }}
         >
           {renderHeader()}
-          <div className="grid grid-cols-8 text-center font-semibold text-gray-500 dark:text-gray-400 text-xs px-2 pb-2">
+          <div className="grid grid-cols-8 text-center font-bold text-gray-400 dark:text-gray-500 text-[10px] tracking-widest uppercase py-3 border-b border-gray-200/10 dark:border-gray-700/30 px-3 bg-gray-50/40 dark:bg-gray-900/20">
             {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((day) => (
-              <div key={day}>{day}</div>
+              <div key={day} className="select-none">{day}</div>
             ))}
-            <div className="text-blue-500 dark:text-blue-400">Mingguan</div>
+            <div className="text-blue-500 dark:text-blue-400 font-extrabold uppercase select-none">Mingguan</div>
           </div>
           {renderCells()}
         </div>
