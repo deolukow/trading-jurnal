@@ -909,9 +909,11 @@ function App() {
         });
         if (activeProfile) {
           localStorage.setItem(`gdrive_last_sync_${activeProfile.id}`, now);
-          refreshAllData(activeProfile.id);
         }
-        showToast("Pemulihan data sukses!", "success");
+        showToast("Pemulihan data sukses! Aplikasi akan dimuat ulang...", "success");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         throw new Error();
       }

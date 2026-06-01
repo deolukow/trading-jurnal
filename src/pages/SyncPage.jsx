@@ -278,10 +278,10 @@ export const SyncPage = ({ activeProfile, showToast, onRefresh }) => {
         localStorage.setItem(`gdrive_last_sync_${activeProfile.id}`, now);
         setLocalLastSync(now);
 
-        showToast("Pemulihan data sukses! Halaman akan menyegarkan data.", "success");
-        if (onRefresh) {
-          onRefresh();
-        }
+        showToast("Pemulihan data sukses! Aplikasi akan dimuat ulang...", "success");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         throw new Error("Failed to download from Drive REST endpoint");
       }

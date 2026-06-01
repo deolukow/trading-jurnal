@@ -105,10 +105,19 @@ export const getItemsByProfileId = (storeName, profileId) =>
 
 export const exportIndexedDB = async () => {
   const backup = {
-    version: 2,
+    version: 3, // Upgrade version to include localStorage preferences
     timestamp: Date.now(),
-    stores: {}
+    stores: {},
+    preferences: {}
   };
+
+  // Backup localStorage items, excluding sensitive/sync data
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && !key.startsWith("gdrive_")) {
+      backup.preferences[key] = localStorage.getItem(key);
+    }
+  }
 
   for (const storeName of ALL_STORES) {
     const items = await getAllItems(storeName);
@@ -141,6 +150,13 @@ export const exportIndexedDB = async () => {
 export const importIndexedDB = async (backupData) => {
   if (!backupData || !backupData.stores) {
     throw new Error("Format data cadangan tidak valid.");
+  }
+
+  // Restore preferences if available
+  if (backupData.preferences) {
+    for (const [key, value] of Object.entries(backupData.preferences)) {
+      localStorage.setItem(key, value);
+    }
   }
 
   await initDB();
