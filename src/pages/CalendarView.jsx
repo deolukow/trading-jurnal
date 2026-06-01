@@ -246,7 +246,7 @@ export const CalendarView = ({
       { value: 11, label: "Desember" },
     ];
     return (
-      <div className="flex justify-between items-center p-4 md:p-6 bg-gray-50/40 dark:bg-gray-900/30 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+      <div className="flex justify-between items-center p-4 md:p-6 bg-gray-50/95 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={() =>
@@ -260,7 +260,7 @@ export const CalendarView = ({
         </button>
 
         <div className="flex flex-col items-center">
-          <div className="flex items-center space-x-1 bg-gray-100/50 dark:bg-gray-800/40 border border-gray-200/30 dark:border-gray-700/30 p-1 rounded-xl shadow-inner backdrop-blur-sm">
+          <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50 p-1 rounded-xl shadow-inner">
             <select
               value={currentMonth}
               onChange={(e) =>
@@ -297,7 +297,7 @@ export const CalendarView = ({
           <div className="mt-2.5">
             <span
               className={classNames(
-                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-semibold backdrop-blur-md border shadow-sm transition-all duration-300",
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-semibold border shadow-sm transition-all duration-300",
                 getPnlStatus(monthlyPnl) === "win"
                   ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(0,230,118,0.06)]"
                   : getPnlStatus(monthlyPnl) === "loss"
@@ -330,7 +330,7 @@ export const CalendarView = ({
     );
   };
 
-  const renderCells = () => {
+  const calendarGrid = useMemo(() => {
     const monthStart = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
@@ -376,7 +376,7 @@ export const CalendarView = ({
           <div
             key={day.toString()}
             className={classNames(
-              "relative p-2 h-20 md:h-24 rounded-xl flex flex-col justify-between transition-all duration-300 select-none border backdrop-blur-sm",
+              "relative p-2 h-20 md:h-24 rounded-xl flex flex-col justify-between transition-colors duration-200 select-none border",
               day.getMonth() !== currentDate.getMonth()
                 ? "opacity-30 text-gray-400 dark:text-gray-650 bg-gray-55/10 dark:bg-gray-900/5 border-gray-200/5 dark:border-gray-800/5 pointer-events-none"
                 : "text-gray-850 dark:text-gray-200 border-gray-200 dark:border-gray-700/80 bg-white dark:bg-gray-800/40",
@@ -396,7 +396,7 @@ export const CalendarView = ({
                 ? "ring-2 ring-blue-500 border-transparent dark:ring-blue-500 shadow-[0_0_15px_rgba(124,58,237,0.3)] z-10"
                 : "",
             )}
-            onClick={() => handleDayClick(cloneDay)}
+            onClick={() => handleDayClick(new Date(cloneDay))}
           >
             <div className="flex justify-between items-start w-full">
               <span
@@ -504,7 +504,7 @@ export const CalendarView = ({
       );
     }
     return <div className="flex flex-col gap-1.5 md:gap-2 p-3 bg-gray-50/80 dark:bg-gray-950/50 rounded-b-2xl">{rows}</div>;
-  };
+  }, [currentDate, tradesByDate, selectedDate, allUSDVal, tradingProfiles]);
 
   const selectedTrades = useMemo(() => {
     if (!selectedDate) return [];
@@ -519,7 +519,7 @@ export const CalendarView = ({
   return (
     <div className="animate-fadeIn select-none">
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700 overflow-hidden touch-pan-y backdrop-blur-md"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-700 overflow-hidden touch-pan-y"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -538,7 +538,7 @@ export const CalendarView = ({
             ))}
             <div className="text-blue-600 dark:text-blue-400 font-black uppercase select-none">Mingguan</div>
           </div>
-          {renderCells()}
+          {calendarGrid}
         </div>
       </div>
       {selectedDate && selectedTrades.length > 0 && (
