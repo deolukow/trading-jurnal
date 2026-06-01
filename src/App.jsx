@@ -121,6 +121,9 @@ function App() {
   const [splashFadeOut, setSplashFadeOut] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
+  // Gallery Active Sync State
+  const [activeGalleryTrades, setActiveGalleryTrades] = useState([]);
+
   const [toast, setToast] = useState({ message: "", type: "" });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopSidebarVisible, setIsDesktopSidebarVisible] = useState(true);
@@ -1070,9 +1073,7 @@ function App() {
 
     let activeList = [];
     if (activeView === "gallery") {
-      activeList = trades
-        .filter((t) => t.screenshotAfterId)
-        .sort((a, b) => new Date(b.tradeDate).getTime() - new Date(a.tradeDate).getTime());
+      activeList = activeGalleryTrades || [];
     } else if (activeView === "dashboard") {
       activeList = sortedTrades || [];
     } else {
@@ -2137,9 +2138,7 @@ function App() {
         {viewingTrade && (() => {
           let activeList = [];
           if (activeView === "gallery") {
-            activeList = trades
-              .filter((t) => t.screenshotAfterId)
-              .sort((a, b) => new Date(b.tradeDate).getTime() - new Date(a.tradeDate).getTime());
+            activeList = activeGalleryTrades || [];
           } else if (activeView === "dashboard") {
             activeList = sortedTrades || [];
           } else {
@@ -3203,6 +3202,8 @@ function App() {
                 customEndDate={customEndDate}
                 setCustomStartDate={setCustomStartDate}
                 setCustomEndDate={setCustomEndDate}
+                customFields={customFields}
+                onFilteredTradesChange={setActiveGalleryTrades}
               />
             )}
             {activeView === "sync" && activeProfile && (
