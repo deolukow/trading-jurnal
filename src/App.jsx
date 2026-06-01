@@ -92,6 +92,7 @@ import { ProfileSelector } from "./components/dashboard/ProfileSelector";
 import { StatCard } from "./components/dashboard/StatCard";
 import { GaugeChart } from "./components/dashboard/GaugeChart";
 import { RatioBar } from "./components/dashboard/RatioBar";
+import { RealtimePricesWidget } from "./components/dashboard/RealtimePricesWidget";
 
 import { LoginPage } from "./pages/LoginPage";
 import { StrategyPage } from "./pages/StrategyPage";
@@ -286,6 +287,7 @@ function App() {
     { id: "stat_avgWinLoss", w: 1, h: 1 },
     { id: "stat_totalLot", w: 1, h: 1 },
     { id: "stat_duration", w: 1, h: 1 },
+    { id: "widget_realtime_prices", w: 2, h: 1 },
     { id: "widget_notes", w: 2, h: 2 },
     { id: "widget_chart", w: 4, h: 2 },
     { id: "widget_fields", w: 4, h: 2 },
@@ -313,6 +315,7 @@ function App() {
         { id: "stat_avgWinLoss", w: 1, h: 1 },
         { id: "stat_totalLot", w: 1, h: 1 },
         { id: "stat_duration", w: 1, h: 1 },
+        { id: "widget_realtime_prices", w: 2, h: 1 },
         { id: "widget_notes", w: 2, h: 2 },
         { id: "widget_chart", w: 4, h: 2 },
         { id: "widget_fields", w: 4, h: 2 },
@@ -381,6 +384,7 @@ function App() {
         { id: "stat_avgWinLoss", w: 1, h: 1 },
         { id: "stat_totalLot", w: 1, h: 1 },
         { id: "stat_duration", w: 1, h: 1 },
+        { id: "widget_realtime_prices", w: 2, h: 1 },
         { id: "widget_notes", w: 2, h: 2 },
         { id: "widget_chart", w: 4, h: 2 },
         { id: "widget_fields", w: 4, h: 2 },
@@ -496,6 +500,7 @@ function App() {
       case "stat_avgWinLoss": return "Avg Win/Loss";
       case "stat_totalLot": return "Total Lot";
       case "stat_duration": return "Durasi Trading";
+      case "widget_realtime_prices": return "Pantauan Harga Live";
       case "widget_notes": return "Catatan & Quotes";
       case "widget_chart": return "Grafik Performa";
       case "widget_fields": return "Tabel Performa Field";
@@ -2613,6 +2618,25 @@ function App() {
                           );
                         }
 
+                        // Widget Real-Time Prices
+                        if (widget.id === "widget_realtime_prices") {
+                          return (
+                            <div
+                              key="widget_realtime_prices"
+                              className={`relative transition-all duration-300 ${colSpan} ${rowSpan} ${editClasses}`}
+                              onMouseDown={handleLongPressStart}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={handleLongPressStart}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchMove={handleLongPressMove}
+                            >
+                              {isLayoutEditMode && renderLayoutControls(widget)}
+                              <RealtimePricesWidget />
+                            </div>
+                          );
+                        }
+
                         // Widget Daily Goal Progress
                         if (widget.id === "widget_dailyGoal") {
                           const isDailyGoalActive = activePeriod === "daily";
@@ -3383,13 +3407,13 @@ function App() {
                 tradingProfiles={tradingProfiles}
               />
             )}
-            {activeView === "tradingview" && (
+            <div className={activeView === "tradingview" ? "block" : "hidden"}>
               <TradingViewPage
                 activeProfile={activeProfile}
                 trades={trades}
                 pairs={pairs}
               />
-            )}
+            </div>
             {activeView === "sync" && activeProfile && (
               <SyncPage
                 activeProfile={activeProfile}
