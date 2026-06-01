@@ -195,8 +195,22 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-              {typeIcon} <span className="ml-2">{trade.pair}</span>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <span className="flex items-center">{typeIcon} <span className="ml-2">{trade.pair}</span></span>
+              {trade.rating && (
+                <span className={`px-3 py-1 text-sm font-black rounded-lg border shadow-md tracking-wider ${
+                  trade.rating === 5 ? "bg-amber-500/15 text-amber-500 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)] animate-pulse" :
+                  trade.rating === 4 ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/40" :
+                  trade.rating === 3 ? "bg-blue-500/15 text-blue-500 border-blue-500/40" :
+                  trade.rating === 2 ? "bg-violet-500/15 text-violet-500 border-violet-500/40" :
+                  "bg-gray-500/15 text-gray-400 border-gray-500/40"
+                }`}>
+                  {trade.rating === 5 ? "A+" :
+                   trade.rating === 4 ? "A" :
+                   trade.rating === 3 ? "B+" :
+                   trade.rating === 2 ? "B" : "C"}
+                </span>
+              )}
             </h2>
             <button
               onClick={onClose}
@@ -277,6 +291,40 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                 <p className="text-gray-800 dark:text-white font-medium">
                   {trade.setup || "Tidak Ada Setup Dicatat"}
                 </p>
+              </div>
+
+              {/* Eye-catching Setup Rating Widget */}
+              <div className={`p-4 rounded-xl border shadow-sm flex items-center justify-between transition-all duration-300 ${
+                (trade.rating || 5) === 5 ? "bg-gradient-to-r from-amber-500/10 to-transparent dark:from-amber-500/5 dark:to-transparent border-amber-500/35 shadow-[0_0_15px_rgba(245,158,11,0.08)]" :
+                (trade.rating || 5) === 4 ? "bg-gradient-to-r from-emerald-500/10 to-transparent dark:from-emerald-500/5 dark:to-transparent border-emerald-500/35" :
+                (trade.rating || 5) === 3 ? "bg-gradient-to-r from-blue-500/10 to-transparent dark:from-blue-500/5 dark:to-transparent border-blue-500/35" :
+                (trade.rating || 5) === 2 ? "bg-gradient-to-r from-violet-500/10 to-transparent dark:from-violet-500/5 dark:to-transparent border-violet-500/35" :
+                "bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-650"
+              }`}>
+                <div className="flex flex-col min-w-0 pr-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Setup Rating Quality
+                  </span>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1 truncate">
+                    {(trade.rating || 5) === 5 && "Sangat Kuat - SOP Terpenuhi Sempurna"}
+                    {trade.rating === 4 && "Kuat - Setup Standar Konfirmasi Jelas"}
+                    {trade.rating === 3 && "Cukup - Setup Moderat Cukup Konfirmasi"}
+                    {trade.rating === 2 && "Lemah - Setup Agresif / Minim Konfirmasi"}
+                    {trade.rating === 1 && "Kurang - High Risk Setup / Spekulatif"}
+                  </span>
+                </div>
+                <div className={`px-4 py-2.5 rounded-lg border font-black text-2xl tracking-wide flex items-center justify-center flex-shrink-0 ${
+                  (trade.rating || 5) === 5 ? "bg-amber-500/15 text-amber-500 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]" :
+                  (trade.rating || 5) === 4 ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/40" :
+                  (trade.rating || 5) === 3 ? "bg-blue-500/15 text-blue-500 border-blue-500/40" :
+                  (trade.rating || 5) === 2 ? "bg-violet-500/15 text-violet-500 border-violet-500/40" :
+                  "bg-gray-500/15 text-gray-400 border-gray-500/40"
+                }`}>
+                  {(trade.rating || 5) === 5 ? "A+" :
+                   (trade.rating || 5) === 4 ? "A" :
+                   (trade.rating || 5) === 3 ? "B+" :
+                   (trade.rating || 5) === 2 ? "B" : "C"}
+                </div>
               </div>
               {(trade.entryPrice > 0 ||
                 trade.takeProfit > 0 ||

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Save, UploadCloud, Camera, Edit3 } from "lucide-react";
+import { Save, UploadCloud, Camera, Edit3, Star } from "lucide-react";
 import { useLocalImage } from "../../hooks/useLocalImage";
 import { toDateTimeLocalInput } from "../../utils/formatters";
 
@@ -22,6 +22,7 @@ export const TradeForm = ({
       lotSize: "0.01",
       pnl: "0",
       setup: "",
+      rating: 5, // Default to 5 stars (A+)
       notes: "",
       screenshotBeforeId: null,
       screenshotAfterId: null,
@@ -221,6 +222,7 @@ export const TradeForm = ({
           lotSize: String(template.lotSize ?? "0.01"),
           pnl: String(template.pnl ?? "0"),
           setup: template.setup || "",
+          rating: template.rating ?? 5,
           riskRewardRatio: String(template.riskRewardRatio ?? "0"),
           entryPrice: String(template.entryPrice ?? ""),
           takeProfit: String(template.takeProfit ?? ""),
@@ -552,6 +554,62 @@ export const TradeForm = ({
                   </option>
                 )}
             </select>
+          </div>
+
+          {/* Rating Setup (Interactive Star Rating Input) */}
+          <div className="md:col-span-3 flex flex-col bg-gray-50/50 dark:bg-gray-900/35 border border-gray-200/60 dark:border-gray-700/60 p-4 rounded-xl space-y-2.5">
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Setup Rating / Quality Assessment *
+            </label>
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* 5-Star Row */}
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((starValue) => {
+                  const isFilled = starValue <= (formData.rating || 5);
+                  return (
+                    <button
+                      key={starValue}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, rating: starValue }))}
+                      className="p-1 hover:scale-125 transition-transform cursor-pointer group active:scale-95"
+                      title={`Bintang ${starValue} dari 5`}
+                    >
+                      <Star
+                        size={22}
+                        className={`transition-all duration-200 ${
+                          isFilled
+                            ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)] scale-110"
+                            : "text-gray-300 dark:text-gray-600 hover:text-amber-300"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Rating Value Text Display */}
+              <div className="flex items-center gap-2.5">
+                <span className={`px-2.5 py-0.5 font-black text-xs rounded-lg border shadow-sm tracking-wide ${
+                  (formData.rating || 5) === 5 ? "bg-amber-500/15 text-amber-500 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.15)]" :
+                  (formData.rating || 5) === 4 ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/40" :
+                  (formData.rating || 5) === 3 ? "bg-blue-500/15 text-blue-500 border-blue-500/40" :
+                  (formData.rating || 5) === 2 ? "bg-violet-500/15 text-violet-500 border-violet-500/40" :
+                  "bg-gray-500/15 text-gray-400 border-gray-500/40"
+                }`}>
+                  {(formData.rating || 5) === 5 ? "A+" :
+                   (formData.rating || 5) === 4 ? "A" :
+                   (formData.rating || 5) === 3 ? "B+" :
+                   (formData.rating || 5) === 2 ? "B" : "C"}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">
+                  {(formData.rating || 5) === 5 && "Sangat Kuat - SOP Terpenuhi Sempurna"}
+                  {(formData.rating || 5) === 4 && "Kuat - Setup Standar Konfirmasi Jelas"}
+                  {(formData.rating || 5) === 3 && "Cukup - Setup Moderat dengan Konfirmasi Cukup"}
+                  {(formData.rating || 5) === 2 && "Lemah - Setup Agresif / Konservatif Minim"}
+                  {(formData.rating || 5) === 1 && "Kurang - High Risk Setup / Spekulatif"}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Dynamic Strategy Entry Criteria Checklist */}

@@ -30,6 +30,20 @@ export const GalleryView = ({
           <div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 flex justify-between items-center">
               {trade.pair}
+              {trade.rating && (
+                <span className={`px-2 py-0.5 text-[10px] font-black rounded-lg border tracking-wide ${
+                  trade.rating === 5 ? "bg-amber-500/10 text-amber-500 border-amber-500/30 shadow-[0_0_6px_rgba(245,158,11,0.1)]" :
+                  trade.rating === 4 ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" :
+                  trade.rating === 3 ? "bg-blue-500/10 text-blue-500 border-blue-500/30" :
+                  trade.rating === 2 ? "bg-violet-500/10 text-violet-500 border-violet-500/30" :
+                  "bg-gray-500/10 text-gray-400 border-gray-500/30"
+                }`}>
+                  {trade.rating === 5 ? "A+" :
+                   trade.rating === 4 ? "A" :
+                   trade.rating === 3 ? "B+" :
+                   trade.rating === 2 ? "B" : "C"}
+                </span>
+              )}
             </h3>
             <p className="text-xs text-gray-400 dark:text-gray-500">
               Memuat gambar...
@@ -60,12 +74,29 @@ export const GalleryView = ({
         className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden cursor-pointer transition-transform hover:scale-[1.02] border border-gray-200 dark:border-gray-700 relative group"
         onClick={() => onShowTradeDetail(trade)}
       >
-        <div className="aspect-video w-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+        <div className="aspect-video w-full overflow-hidden bg-gray-100 dark:bg-gray-700 relative">
           <img
             src={imageUrl}
             alt={`Trade ${trade.pair}`}
             className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-80"
           />
+          
+          {/* Elegant Setup Rating Overlay Badge on Thumbnail */}
+          {trade.rating && (
+            <span className={`absolute top-2.5 left-2.5 z-10 px-2.5 py-0.5 text-[10px] font-black rounded-lg border tracking-wider shadow-md select-none ${
+              trade.rating === 5 ? "bg-amber-500/90 border-amber-400 text-white shadow-[0_2px_8px_rgba(245,158,11,0.4)]" :
+              trade.rating === 4 ? "bg-emerald-500/90 border-emerald-400 text-white" :
+              trade.rating === 3 ? "bg-blue-500/90 border-blue-400 text-white" :
+              trade.rating === 2 ? "bg-violet-500/90 border-violet-400 text-white" :
+              "bg-gray-650/90 border-gray-500 text-white"
+            }`}>
+              SETUP {trade.rating === 5 ? "A+" :
+                     trade.rating === 4 ? "A" :
+                     trade.rating === 3 ? "B+" :
+                     trade.rating === 2 ? "B" : "C"}
+            </span>
+          )}
+
           <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"

@@ -9,6 +9,7 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
       { key: "pair", label: "Pair" },
       { key: "type", label: "Tipe (Long/Short)" },
       { key: "setup", label: "Setup / Strategi" },
+      { key: "rating", label: "Rating Setup" },
       { key: "dayOfWeek", label: "Hari" },
     ],
     [],
@@ -36,6 +37,12 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
         const date = trade.tradeDate instanceof Date ? trade.tradeDate : new Date(trade.tradeDate);
         dayIndex = isNaN(date.getTime()) ? -1 : date.getDay();
         value = dayIndex !== -1 ? INDONESIAN_DAYS[dayIndex] : "N/A";
+      } else if (selectedField === "rating") {
+        const ratingVal = trade.rating || 5; // Default to 5 (A+) if not set
+        value = ratingVal === 5 ? "A+" :
+                ratingVal === 4 ? "A" :
+                ratingVal === 3 ? "B+" :
+                ratingVal === 2 ? "B" : "C";
       } else if (selectedField.startsWith("custom_")) {
         const fieldName = selectedField.replace("custom_", "");
         value = trade.customData?.[fieldName] || "N/A";
@@ -74,6 +81,10 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
           // Sort Monday (1) to Sunday (7)
           const getSortIndex = (idx) => (idx === 0 ? 7 : idx);
           return getSortIndex(a.dayIndex) - getSortIndex(b.dayIndex);
+        }
+        if (selectedField === "rating") {
+          const rank = { "A+": 5, "A": 4, "B+": 3, "B": 2, "C": 1 };
+          return (rank[b.name] || 0) - (rank[a.name] || 0);
         }
         return b.count - a.count;
       });

@@ -147,6 +147,12 @@ export const TradeList = ({
                   {getSortIndicator("setup")}
                 </span>
               </th>
+              <th {...headerProps("rating")}>
+                Rating{" "}
+                <span className="text-blue-500 dark:text-blue-400">
+                  {getSortIndicator("rating")}
+                </span>
+              </th>
               {customFields.map((field) => (
                 <th key={field.id} {...headerProps(field.name)}>
                   {field.name}{" "}
@@ -164,7 +170,7 @@ export const TradeList = ({
             {displayedTrades.length === 0 ? (
               <tr>
                 <td
-                  colSpan={11 + customFields.length}
+                  colSpan={12 + customFields.length}
                   className="text-center p-6 text-gray-500"
                 >
                   Tidak ada trade untuk ditampilkan.
@@ -240,7 +246,23 @@ export const TradeList = ({
                       ? `${parseFloat(trade.riskRewardRatio).toFixed(2)}R`
                       : "-"}
                   </td>
-                  <td className="p-3">{trade.setup || "-"}</td>
+                   <td className="p-3">{trade.setup || "-"}</td>
+                  <td className="p-3 font-extrabold text-xs">
+                    <span className={`px-2 py-0.5 rounded border font-black tracking-wide ${
+                      trade.rating === 5 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                      trade.rating === 4 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                      trade.rating === 3 ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                      trade.rating === 2 ? "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20" :
+                      trade.rating === 1 ? "bg-gray-500/10 text-gray-500 border-gray-500/20" :
+                      "text-gray-400 dark:text-gray-500 border-transparent"
+                    }`}>
+                      {trade.rating === 5 ? "A+" :
+                       trade.rating === 4 ? "A" :
+                       trade.rating === 3 ? "B+" :
+                       trade.rating === 2 ? "B" :
+                       trade.rating === 1 ? "C" : "-"}
+                    </span>
+                  </td>
                   {customFields.map((field) => (
                     <td key={field.id} className="p-3">
                       {trade.customData?.[field.name] || "-"}
