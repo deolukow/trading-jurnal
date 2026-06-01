@@ -57,6 +57,7 @@ import {
   Clock,
   PanelLeftClose,
   PanelLeftOpen,
+  LineChart,
 } from "lucide-react";
 
 // modular components
@@ -97,6 +98,7 @@ import { StrategyPage } from "./pages/StrategyPage";
 import { CalendarView } from "./pages/CalendarView";
 import { GalleryView } from "./pages/GalleryView";
 import { SyncPage } from "./pages/SyncPage";
+import { TradingViewPage } from "./pages/TradingViewPage";
 
 // --- MAIN APP COMPONENT ---
 function App() {
@@ -2059,6 +2061,15 @@ function App() {
             }}
           />
           <SidebarLink
+            icon={<LineChart size={20} />}
+            text="Analisis Chart"
+            active={activeView === "tradingview"}
+            onClick={() => {
+              setActiveView("tradingview");
+              setIsSidebarOpen(false);
+            }}
+          />
+          <SidebarLink
             icon={<Cloud size={20} className="text-violet-500" />}
             text="Sinkronisasi Cloud"
             active={activeView === "sync"}
@@ -2453,7 +2464,9 @@ function App() {
                       ? "Kalender Trade"
                       : activeView === "gallery"
                         ? "Galeri Trade"
-                        : "Sinkronisasi Cloud"}
+                        : activeView === "tradingview"
+                          ? "Analisis Chart"
+                          : "Sinkronisasi Cloud"}
               </h2>
             </div>
             <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
@@ -3368,6 +3381,13 @@ function App() {
                 onFilteredTradesChange={setActiveGalleryTrades}
                 activeProfileId={activeProfile?.id}
                 tradingProfiles={tradingProfiles}
+              />
+            )}
+            {activeView === "tradingview" && (
+              <TradingViewPage
+                activeProfile={activeProfile}
+                trades={trades}
+                pairs={pairs}
               />
             )}
             {activeView === "sync" && activeProfile && (
