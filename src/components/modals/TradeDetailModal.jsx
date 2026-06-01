@@ -206,6 +206,7 @@ export const TradeDetailModal = ({
           onClose={() => setShowShareModal(false)}
           currency={tradeCurrency}
           activeProfileName={activeProfileName || tradeProfile?.name}
+          strategies={strategies}
         />
       )}
       <div 
