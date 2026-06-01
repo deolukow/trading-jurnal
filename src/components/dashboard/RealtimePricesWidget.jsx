@@ -3,14 +3,15 @@ import { Settings, X, Activity, Search } from "lucide-react";
 
 // Popular standard pair options
 const POPULAR_PAIRS = [
+  { value: "CAPITALCOM:US100", label: "NAS100 (Nasdaq 100)" },
+  { value: "OANDA:XAUUSD", label: "GOLD / XAUUSD (Emas)" },
+  { value: "CAPITALCOM:DXY", label: "DXY (US Dollar Index)" },
   { value: "FX:EURUSD", label: "EUR/USD (Euro / US Dollar)" },
   { value: "FX:GBPUSD", label: "GBP/USD (Pound / US Dollar)" },
   { value: "FX:USDJPY", label: "USD/JPY (US Dollar / Yen)" },
   { value: "FX:USDCAD", label: "USD/CAD (US Dollar / Canadian Dollar)" },
   { value: "FX:AUDUSD", label: "AUD/USD (Australian Dollar / US Dollar)" },
   { value: "FX:EURGBP", label: "EUR/GBP (Euro / Pound)" },
-  { value: "OANDA:XAUUSD", label: "GOLD / XAUUSD (Emas)" },
-  { value: "CAPITALCOM:DXY", label: "DXY (US Dollar Index)" },
   { value: "BINANCE:BTCUSDT", label: "BTC/USDT (Bitcoin)" },
   { value: "BINANCE:ETHUSDT", label: "ETH/USDT (Ethereum)" },
   { value: "BINANCE:SOLUSDT", label: "SOL/USDT (Solana)" },
@@ -67,8 +68,23 @@ const TradingViewSingleQuote = ({ containerId, symbol }) => {
 
 export const RealtimePricesWidget = () => {
   // Load saved pairs from LocalStorage
-  const [pair1, setPair1] = useState(() => localStorage.getItem("ticker_pair_1") || "FX:EURUSD");
-  const [pair2, setPair2] = useState(() => localStorage.getItem("ticker_pair_2") || "OANDA:XAUUSD");
+  const [pair1, setPair1] = useState(() => {
+    const saved = localStorage.getItem("ticker_pair_1");
+    if (saved === "FX:EURUSD" || saved === "NASDAQ:NDX" || !saved) {
+      localStorage.setItem("ticker_pair_1", "CAPITALCOM:US100");
+      return "CAPITALCOM:US100";
+    }
+    return saved;
+  });
+
+  const [pair2, setPair2] = useState(() => {
+    const saved = localStorage.getItem("ticker_pair_2");
+    if (!saved) {
+      localStorage.setItem("ticker_pair_2", "OANDA:XAUUSD");
+      return "OANDA:XAUUSD";
+    }
+    return saved;
+  });
   
   // Custom manual inputs state
   const [customInput1, setCustomInput1] = useState("");
@@ -76,15 +92,14 @@ export const RealtimePricesWidget = () => {
   
   // Selection modes (dropdown value or "custom")
   const [selectMode1, setSelectMode1] = useState(() => {
-    return POPULAR_PAIRS.some(p => p.value === (localStorage.getItem("ticker_pair_1") || "FX:EURUSD")) 
-      ? (localStorage.getItem("ticker_pair_1") || "FX:EURUSD") 
-      : "custom";
+    const saved = localStorage.getItem("ticker_pair_1");
+    const activeVal = (saved === "FX:EURUSD" || saved === "NASDAQ:NDX" || !saved) ? "CAPITALCOM:US100" : saved;
+    return POPULAR_PAIRS.some(p => p.value === activeVal) ? activeVal : "custom";
   });
   
   const [selectMode2, setSelectMode2] = useState(() => {
-    return POPULAR_PAIRS.some(p => p.value === (localStorage.getItem("ticker_pair_2") || "OANDA:XAUUSD")) 
-      ? (localStorage.getItem("ticker_pair_2") || "OANDA:XAUUSD") 
-      : "custom";
+    const saved = localStorage.getItem("ticker_pair_2") || "OANDA:XAUUSD";
+    return POPULAR_PAIRS.some(p => p.value === saved) ? saved : "custom";
   });
 
   const [showSettings, setShowSettings] = useState(false);

@@ -35,8 +35,20 @@ const cleanSymbolForTV = (symbol) => {
   if (clean === "XAUUSD" || clean === "GOLD") {
     return "OANDA:XAUUSD";
   }
+  if (clean === "XAGUSD" || clean === "SILVER") {
+    return "OANDA:XAGUSD";
+  }
   if (clean === "DXY" || clean === "USDOLLAR") {
     return "CAPITALCOM:DXY";
+  }
+  if (clean === "NAS100" || clean === "NDX") {
+    return "CAPITALCOM:US100";
+  }
+  if (clean === "SPX500" || clean === "SPX") {
+    return "CAPITALCOM:US500";
+  }
+  if (clean === "US30" || clean === "DJI") {
+    return "CAPITALCOM:US30";
   }
   return clean;
 };
@@ -123,29 +135,45 @@ const TradingViewWidget = ({ containerId, symbol, isActive }) => {
 export const TradingViewPage = ({ activeProfile, trades = [], pairs = [] }) => {
   // Grid layout mode: "1" (Single), "2-vertical" (Split Kiri-Kanan), "2-horizontal" (Split Atas-Bawah), "4" (Grid 2x2)
   const [layout, setLayout] = useState(() => {
-    return localStorage.getItem("tv_layout_mode") || "2-vertical";
+    return localStorage.getItem("tv_layout_mode") || "4";
   });
 
   // Symbols for each slot (up to 4 slots)
   const [symbols, setSymbols] = useState(() => {
     const saved = localStorage.getItem("tv_active_symbols");
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.includes("FX:EURUSD") || parsed.includes("NASDAQ:NDX")) {
+          return ["CAPITALCOM:US100", "CAPITALCOM:US500", "CAPITALCOM:US30", "CAPITALCOM:DXY"];
+        }
+        return parsed;
+      } catch (e) { /* fallback */ }
     }
-    return ["FX:EURUSD", "FX:GBPUSD", "OANDA:XAUUSD", "CAPITALCOM:DXY"];
+    return ["CAPITALCOM:US100", "CAPITALCOM:US500", "CAPITALCOM:US30", "CAPITALCOM:DXY"];
   });
 
   // Configurable presets state
   const [presets, setPresets] = useState(() => {
     const saved = localStorage.getItem("tv_presets_v2");
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { }
+      try {
+        const parsed = JSON.parse(saved);
+        const hasOldDefault = parsed.some(p => p.name.includes("Forex SMT") || p.name.includes("USD SMT"));
+        const hasRestricted = parsed.some(p => p.symbols.includes("NASDAQ:NDX") || p.symbols.includes("SP:SPX"));
+        if (!hasOldDefault && !hasRestricted && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) { }
     }
-    return [
-      { id: "1", name: "Forex SMT (EUR/GBP)", symbols: ["FX:EURUSD", "FX:GBPUSD", "OANDA:XAUUSD", "CAPITALCOM:DXY"] },
-      { id: "2", name: "USD SMT (EUR/DXY)", symbols: ["FX:EURUSD", "CAPITALCOM:DXY", "OANDA:XAUUSD", "CAPITALCOM:DXY"] },
-      { id: "3", name: "Crypto SMT (BTC/ETH)", symbols: ["BINANCE:BTCUSDT", "BINANCE:ETHUSDT", "OANDA:XAUUSD", "CAPITALCOM:DXY"] }
+    const defaults = [
+      { id: "1", name: "NAS100 & SPX500 & US30 & DXY", symbols: ["CAPITALCOM:US100", "CAPITALCOM:US500", "CAPITALCOM:US30", "CAPITALCOM:DXY"] },
+      { id: "2", name: "GOLD & DXY & NAS100 & Silver", symbols: ["OANDA:XAUUSD", "CAPITALCOM:DXY", "CAPITALCOM:US100", "OANDA:XAGUSD"] },
+      { id: "3", name: "NAS100 & GOLD & DXY & US30", symbols: ["CAPITALCOM:US100", "OANDA:XAUUSD", "CAPITALCOM:DXY", "CAPITALCOM:US30"] },
+      { id: "4", name: "GOLD & SILVER & DXY & NAS100", symbols: ["OANDA:XAUUSD", "OANDA:XAGUSD", "CAPITALCOM:DXY", "CAPITALCOM:US100"] }
     ];
+    localStorage.setItem("tv_presets_v2", JSON.stringify(defaults));
+    return defaults;
   });
 
   // Inputs for direct symbol search per slot
@@ -239,9 +267,10 @@ export const TradingViewPage = ({ activeProfile, trades = [], pairs = [] }) => {
     const confirmReset = window.confirm("Apakah Anda yakin ingin mengembalikan semua preset ke pengaturan default?");
     if (!confirmReset) return;
     const defaults = [
-      { id: "1", name: "Forex SMT (EUR/GBP)", symbols: ["FX:EURUSD", "FX:GBPUSD", "OANDA:XAUUSD", "CAPITALCOM:DXY"] },
-      { id: "2", name: "USD SMT (EUR/DXY)", symbols: ["FX:EURUSD", "CAPITALCOM:DXY", "OANDA:XAUUSD", "CAPITALCOM:DXY"] },
-      { id: "3", name: "Crypto SMT (BTC/ETH)", symbols: ["BINANCE:BTCUSDT", "BINANCE:ETHUSDT", "OANDA:XAUUSD", "CAPITALCOM:DXY"] }
+      { id: "1", name: "NAS100 & SPX500 & US30 & DXY", symbols: ["CAPITALCOM:US100", "CAPITALCOM:US500", "CAPITALCOM:US30", "CAPITALCOM:DXY"] },
+      { id: "2", name: "GOLD & DXY & NAS100 & Silver", symbols: ["OANDA:XAUUSD", "CAPITALCOM:DXY", "CAPITALCOM:US100", "OANDA:XAGUSD"] },
+      { id: "3", name: "NAS100 & GOLD & DXY & US30", symbols: ["CAPITALCOM:US100", "OANDA:XAUUSD", "CAPITALCOM:DXY", "CAPITALCOM:US30"] },
+      { id: "4", name: "GOLD & SILVER & DXY & NAS100", symbols: ["OANDA:XAUUSD", "OANDA:XAGUSD", "CAPITALCOM:DXY", "CAPITALCOM:US100"] }
     ];
     setPresets(defaults);
     localStorage.setItem("tv_presets_v2", JSON.stringify(defaults));
@@ -325,8 +354,8 @@ export const TradingViewPage = ({ activeProfile, trades = [], pairs = [] }) => {
           <button
             onClick={() => { setLayout("1"); setFullscreenSlot(null); }}
             className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all ${layout === "1" && fullscreenSlot === null
-                ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+              ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
+              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
               }`}
             title="Single Chart (1x1)"
           >
@@ -336,8 +365,8 @@ export const TradingViewPage = ({ activeProfile, trades = [], pairs = [] }) => {
           <button
             onClick={() => { setLayout("2-vertical"); setFullscreenSlot(null); }}
             className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all ${layout === "2-vertical" && fullscreenSlot === null
-                ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+              ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
+              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
               }`}
             title="Split Vertical (Kiri-Kanan)"
           >
@@ -347,8 +376,8 @@ export const TradingViewPage = ({ activeProfile, trades = [], pairs = [] }) => {
           <button
             onClick={() => { setLayout("2-horizontal"); setFullscreenSlot(null); }}
             className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all ${layout === "2-horizontal" && fullscreenSlot === null
-                ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+              ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
+              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
               }`}
             title="Split Horizontal (Atas-Bawah)"
           >
@@ -358,8 +387,8 @@ export const TradingViewPage = ({ activeProfile, trades = [], pairs = [] }) => {
           <button
             onClick={() => { setLayout("4"); setFullscreenSlot(null); }}
             className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all ${layout === "4" && fullscreenSlot === null
-                ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+              ? "bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 shadow-sm"
+              : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
               }`}
             title="Quad Grid (2x2)"
           >
