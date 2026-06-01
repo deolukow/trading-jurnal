@@ -12,11 +12,13 @@ export const TradeForm = ({
   customFields,
   activeProfileId,
   strategies,
+  tradingProfiles,
 }) => {
   const initialTradeData = useMemo(() => {
     const baseData = {
       tradeDate: toDateTimeLocalInput(new Date()),
       exitDate: "",
+      targetProfileId: activeProfileId === "all" && tradingProfiles?.length > 0 ? tradingProfiles[0].id : activeProfileId,
       pair: "",
       type: "long",
       lotSize: "0.01",
@@ -247,7 +249,7 @@ export const TradeForm = ({
     const finalData = {
       ...formData,
       id: editingTrade ? editingTrade.id : crypto.randomUUID(),
-      profileId: activeProfileId,
+      profileId: activeProfileId === "all" ? formData.targetProfileId : activeProfileId,
       pnl: parseFloat(formData.pnl) || 0,
       lotSize: parseFloat(formData.lotSize) || 0,
       riskRewardRatio: parseFloat(formData.riskRewardRatio) || 0,
@@ -387,6 +389,24 @@ export const TradeForm = ({
             &times;
           </button>
         </div>
+        {activeProfileId === "all" && tradingProfiles && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Pilih Akun Tujuan *
+            </label>
+            <select
+              name="targetProfileId"
+              value={formData.targetProfileId}
+              onChange={handleChange}
+              className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
+              required
+            >
+              {tradingProfiles.map(p => (
+                <option key={p.id} value={p.id}>{p.name} ({p.currency})</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             Pilih Template (Opsional)
@@ -623,7 +643,7 @@ export const TradeForm = ({
                   {formData.criteriaChecked ? formData.criteriaChecked.length : 0} dari {activeStrategy.checklists.length} terpenuhi
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {activeStrategy.checklists.map((criterion, idx) => {
                   const isChecked = formData.criteriaChecked && formData.criteriaChecked.includes(criterion);
                   return (

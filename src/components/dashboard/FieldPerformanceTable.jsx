@@ -1,19 +1,22 @@
 import React, { useState, useMemo } from "react";
 import { formatCurrency } from "../../utils/formatters";
 
-export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }) => {
+export const FieldPerformanceTable = ({ trades, customFields, currency = "USD", activeProfileId, tradingProfiles }) => {
   const [selectedField, setSelectedField] = useState("pair");
 
-  const standardFields = useMemo(
-    () => [
+  const standardFields = useMemo(() => {
+    const fields = [
       { key: "pair", label: "Pair" },
       { key: "type", label: "Tipe (Long/Short)" },
       { key: "setup", label: "Setup / Strategi" },
       { key: "rating", label: "Rating Setup" },
       { key: "dayOfWeek", label: "Hari" },
-    ],
-    [],
-  );
+    ];
+    if (activeProfileId === "all") {
+      fields.unshift({ key: "profile", label: "Profile" });
+    }
+    return fields;
+  }, [activeProfileId]);
 
   const allFields = useMemo(() => {
     return [
@@ -25,9 +28,41 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
     ];
   }, [standardFields, customFields]);
 
+  const allUSDVal = useMemo(() => {
+    return !tradingProfiles || tradingProfiles.length === 0 || tradingProfiles.every(p => p.currency === "USD");
+  }, [tradingProfiles]);
+
+  const getPnlStatus = (pnlVal) => {
+    if (typeof pnlVal === "number") {
+      return pnlVal > 0 ? "win" : pnlVal < 0 ? "loss" : "zero";
+    }
+    const sum = Object.values(pnlVal).reduce((a, b) => a + b, 0);
+    return sum > 0 ? "win" : sum < 0 ? "loss" : "zero";
+  };
+
+  const formatPnl = (pnlVal) => {
+    if (allUSDVal) {
+      const numericVal = typeof pnlVal === "number" ? pnlVal : Object.values(pnlVal).reduce((a, b) => a + b, 0);
+      return formatCurrency(numericVal, "USD");
+    }
+
+    if (typeof pnlVal === "number") {
+      return formatCurrency(pnlVal, "USD");
+    }
+
+    const parts = Object.keys(pnlVal).map(curr => {
+      return formatCurrency(pnlVal[curr], curr);
+    });
+
+    return `(${parts.join(" + ")})`;
+  };
+
   const performanceData = useMemo(() => {
     const groups = {};
     const INDONESIAN_DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const allUSD = !tradingProfiles || tradingProfiles.length === 0 || tradingProfiles.every(p => p.currency === "USD");
+    const uniqueCurrencies = Array.from(new Set((tradingProfiles || []).map(p => p.currency || "USD")));
+    if (uniqueCurrencies.length === 0) uniqueCurrencies.push("USD");
 
     trades.forEach((trade) => {
       let value = "";
@@ -43,6 +78,10 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
                 ratingVal === 4 ? "A" :
                 ratingVal === 3 ? "B+" :
                 ratingVal === 2 ? "B" : "C";
+      } else if (selectedField === "profile" && activeProfileId === "all") {
+        const pId = trade.profileId;
+        const profileObj = tradingProfiles?.find(p => p.id === pId);
+        value = profileObj ? profileObj.name : "Unknown";
       } else if (selectedField.startsWith("custom_")) {
         const fieldName = selectedField.replace("custom_", "");
         value = trade.customData?.[fieldName] || "N/A";
@@ -51,19 +90,35 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
       }
 
       if (!groups[value]) {
+        const initialPnl = allUSD ? 0 : {};
+        if (!allUSD) {
+          uniqueCurrencies.forEach(curr => {
+            initialPnl[curr] = 0;
+          });
+        }
         groups[value] = {
           name: value,
           count: 0,
           wins: 0,
           losses: 0,
-          totalPnl: 0,
+          totalPnl: initialPnl,
           totalRR: 0,
           dayIndex: dayIndex,
         };
       }
 
       groups[value].count++;
-      groups[value].totalPnl += trade.pnl || 0;
+      if (allUSD) {
+        groups[value].totalPnl += trade.pnl || 0;
+      } else {
+        const profile = tradingProfiles?.find(p => p.id === trade.profileId);
+        const curr = profile?.currency || "USD";
+        if (groups[value].totalPnl[curr] === undefined) {
+          groups[value].totalPnl[curr] = 0;
+        }
+        groups[value].totalPnl[curr] += trade.pnl || 0;
+      }
+
       if (trade.pnl > 0) groups[value].wins++;
       else if (trade.pnl < 0) groups[value].losses++;
 
@@ -88,7 +143,7 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
         }
         return b.count - a.count;
       });
-  }, [trades, selectedField]);
+  }, [trades, selectedField, tradingProfiles]);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg animate-fadeIn overflow-hidden mt-6 mb-6">
@@ -180,12 +235,14 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD" }
                   </td>
                   <td
                     className={`p-3 text-right font-bold ${
-                      data.totalPnl >= 0
+                      getPnlStatus(data.totalPnl) === "win"
                         ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
+                        : getPnlStatus(data.totalPnl) === "loss"
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-gray-600 dark:text-gray-400"
                     }`}
                   >
-                    {formatCurrency(data.totalPnl, currency)}
+                    {formatPnl(data.totalPnl)}
                   </td>
                   <td className="p-3 text-center text-green-600 dark:text-green-400 font-medium">
                     {data.wins}

@@ -27,6 +27,7 @@ export const GalleryView = ({
   setCustomEndDate,
   customFields = [],
   onFilteredTradesChange,
+  tradingProfiles,
 }) => {
   // Filter Expansion and active category tab
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
@@ -176,6 +177,8 @@ export const GalleryView = ({
     const pnlColor = isWin
       ? "text-green-500 dark:text-green-400"
       : "text-red-500 dark:text-red-400";
+      
+    const tradeCurrency = tradingProfiles?.find(p => p.id === trade.profileId)?.currency || currency;
 
     if (!imageUrl) {
       return (
@@ -206,7 +209,7 @@ export const GalleryView = ({
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">P&L</p>
               <p className={`text-lg font-bold ${pnlColor}`}>
-                {formatCurrency(trade.pnl, currency)}
+                {formatCurrency(trade.pnl, tradeCurrency)}
               </p>
             </div>
             <div className="text-right">
@@ -276,7 +279,7 @@ export const GalleryView = ({
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">P&L</p>
               <p className={`text-lg font-bold ${pnlColor}`}>
-                {formatCurrency(trade.pnl, currency)}
+                {formatCurrency(trade.pnl, tradeCurrency)}
               </p>
             </div>
             <div className="text-right">

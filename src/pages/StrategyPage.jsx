@@ -48,6 +48,7 @@ export const StrategyPage = ({
   openDeleteModal,
   strategies,
   onRefresh,
+  tradingProfiles,
 }) => {
   const [title, setTitle] = useState("");
   const [probability, setProbability] = useState("");
@@ -59,6 +60,9 @@ export const StrategyPage = ({
   const [imageFiles, setImageFiles] = useState([]); // Selected new files in form
   const [existingImageIds, setExistingImageIds] = useState([]); // Previously saved image IDs in form
   const [editingStrategy, setEditingStrategy] = useState(null);
+  const [targetProfileId, setTargetProfileId] = useState(
+    activeProfileId === "all" && tradingProfiles?.length > 0 ? tradingProfiles[0].id : activeProfileId
+  );
 
   // Fullscreen Lightbox states
   const [previewImages, setPreviewImages] = useState([]);
@@ -100,6 +104,7 @@ export const StrategyPage = ({
     setChecklists(strat.checklists || []);
     setExistingImageIds(strat.imageIds || []);
     setImageFiles([]); // Reset new files
+    setTargetProfileId(strat.profileId || (tradingProfiles?.length > 0 ? tradingProfiles[0].id : activeProfileId));
   };
 
   const handleCancelEdit = () => {
@@ -110,6 +115,11 @@ export const StrategyPage = ({
     setChecklists([]);
     setExistingImageIds([]);
     setImageFiles([]);
+    if (activeProfileId === "all" && tradingProfiles?.length > 0) {
+      setTargetProfileId(tradingProfiles[0].id);
+    } else {
+      setTargetProfileId(activeProfileId);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -130,7 +140,7 @@ export const StrategyPage = ({
 
       const strategyData = {
         id: editingStrategy ? editingStrategy.id : crypto.randomUUID(),
-        profileId: activeProfileId,
+        profileId: activeProfileId === "all" ? targetProfileId : activeProfileId,
         title: title.trim(),
         probability: probability ? parseFloat(probability) : null,
         description: description.trim(),
@@ -220,6 +230,24 @@ export const StrategyPage = ({
           <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b pb-2">
             {editingStrategy ? "Edit Strategi" : "Tambah Strategi Baru"}
           </h3>
+
+          {activeProfileId === "all" && tradingProfiles && (
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">
+                Akun Tujuan
+              </label>
+              <select
+                value={targetProfileId}
+                onChange={(e) => setTargetProfileId(e.target.value)}
+                className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded outline-none border border-transparent focus:border-blue-500"
+                required
+              >
+                {tradingProfiles.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.currency})</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -421,6 +449,13 @@ export const StrategyPage = ({
                         </span>
                       )}
                     </div>
+                    {activeProfileId === "all" && tradingProfiles && strat.profileId && (
+                      <div className="mb-2">
+                        <span className="inline-block px-2.5 py-1 text-[10px] font-semibold rounded-md bg-indigo-100/60 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">
+                          Profil: {tradingProfiles.find(p => p.id === strat.profileId)?.name || "Unknown"}
+                        </span>
+                      </div>
+                    )}
                     {strat.description && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-wrap line-clamp-3 border-b border-gray-100 dark:border-gray-700 pb-2 mb-2">
                         {strat.description}

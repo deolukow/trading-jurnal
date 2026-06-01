@@ -26,6 +26,18 @@ export const toDateTimeLocalInput = (date) => {
 };
 
 export const formatCurrency = (value, currency = "USD") => {
+  if (currency === "MIX") {
+    const locale = "en-US";
+    const options = {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    };
+    if (typeof value !== "number" || isNaN(value)) {
+      return new Intl.NumberFormat(locale, options).format(0);
+    }
+    return new Intl.NumberFormat(locale, options).format(value);
+  }
+
   const locale = currency === "IDR" ? "id-ID" : "en-US";
   const options = {
     style: "currency",

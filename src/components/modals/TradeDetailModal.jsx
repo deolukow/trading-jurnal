@@ -27,9 +27,16 @@ export const TradeDetailModal = ({
   onPrev,
   hasNext,
   hasPrev,
+  tradingProfiles,
 }) => {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(-1);
   const [showShareModal, setShowShareModal] = useState(false);
+
+  const tradeProfile = useMemo(() => {
+    return tradingProfiles?.find((p) => p.id === trade?.profileId);
+  }, [tradingProfiles, trade]);
+
+  const tradeCurrency = tradeProfile?.currency || currency || "USD";
 
   // Lift image hooks to the top level
   const beforeImageUrl = useLocalImage(trade?.screenshotBeforeId);
@@ -197,8 +204,8 @@ export const TradeDetailModal = ({
         <ShareCardModal
           trade={trade}
           onClose={() => setShowShareModal(false)}
-          currency={currency}
-          activeProfileName={activeProfileName}
+          currency={tradeCurrency}
+          activeProfileName={activeProfileName || tradeProfile?.name}
         />
       )}
       <div 
@@ -296,6 +303,11 @@ export const TradeDetailModal = ({
                    trade.rating === 2 ? "B" : "C"}
                 </span>
               )}
+              {tradingProfiles && trade.profileId && (
+                <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-100/50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center">
+                  {tradingProfiles.find(p => p.id === trade.profileId)?.name || "Unknown"}
+                </span>
+              )}
             </h2>
             
             <div className="flex items-center gap-3 flex-shrink-0 select-none">
@@ -362,7 +374,7 @@ export const TradeDetailModal = ({
                     P&L
                   </p>
                   <p className={`text-2xl font-extrabold ${pnlColor}`}>
-                    {formatCurrency(trade.pnl, currency)}
+                    {formatCurrency(trade.pnl, tradeCurrency)}
                   </p>
                 </div>
                 <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">

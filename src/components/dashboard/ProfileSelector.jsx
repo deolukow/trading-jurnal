@@ -84,7 +84,7 @@ export const ProfileSelector = ({
               Pilih Profil Trading
             </div>
             <ul className="py-1">
-              {profiles.map((p) => {
+              {[{ id: "all", name: "Semua Akun", currency: "MIX", description: "Gabungan seluruh akun", avatar: null }, ...profiles].map((p) => {
                 const isActive = p.id === activeProfile.id;
                 return (
                   <li key={p.id}>

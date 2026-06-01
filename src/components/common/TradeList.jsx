@@ -14,6 +14,8 @@ export const TradeList = ({
   sortConfig,
   customFields,
   currency,
+  activeProfileId,
+  tradingProfiles,
 }) => {
   const [rowLimit, setRowLimit] = useState(25); // Default to 25 rows
 
@@ -117,6 +119,11 @@ export const TradeList = ({
                   {getSortIndicator("pair")}
                 </span>
               </th>
+              {activeProfileId === "all" && (
+                <th scope="col" className="p-3">
+                  Profile
+                </th>
+              )}
               <th {...headerProps("type")}>
                 Tipe{" "}
                 <span className="text-blue-500 dark:text-blue-400">
@@ -216,6 +223,13 @@ export const TradeList = ({
                   <td className="p-3 font-semibold text-gray-900 dark:text-white">
                     {trade.pair}
                   </td>
+                  {activeProfileId === "all" && (
+                    <td className="p-3">
+                      <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                        {tradingProfiles?.find(p => p.id === trade.profileId)?.name || "Unknown"}
+                      </span>
+                    </td>
+                  )}
                   <td className="p-3">
                     <span
                       className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -239,7 +253,7 @@ export const TradeList = ({
                         : "text-red-600 dark:text-red-400"
                     }`}
                   >
-                    {formatCurrency(trade.pnl, currency)}
+                    {formatCurrency(trade.pnl, tradingProfiles?.find(p => p.id === trade.profileId)?.currency || currency)}
                   </td>
                   <td className="p-3 text-right">
                     {trade.riskRewardRatio > 0

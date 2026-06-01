@@ -683,6 +683,7 @@ function App() {
 
     setActiveProfile((prevActive) => {
       if (prevActive) {
+        if (prevActive.id === "all") return prevActive;
         const updatedActive = sortedProfiles.find((p) => p.id === prevActive.id);
         if (updatedActive) {
           // Compare properties to avoid redundant state updates
@@ -706,6 +707,9 @@ function App() {
         }
       } else if (sortedProfiles.length > 0) {
         const lastProfileId = localStorage.getItem("activeProfileId");
+        if (lastProfileId === "all") {
+          return { id: "all", name: "Semua Akun", currency: "MIX", description: "Gabungan seluruh akun" };
+        }
         const lastProfile = sortedProfiles.find((p) => p.id === lastProfileId);
         const nextActive = lastProfile || sortedProfiles[0];
         localStorage.setItem("activeProfileId", nextActive.id);
@@ -924,23 +928,54 @@ function App() {
       return;
     }
 
-    const [
-      tradesData,
-      pairsData,
-      templatesData,
-      customFieldsData,
-      balanceData,
-      goalData,
-      strategiesData,
-    ] = await Promise.all([
-      getItemsByProfileId("trades", profileId),
-      getItemsByProfileId("pairs", profileId),
-      getItemsByProfileId("templates", profileId),
-      getItemsByProfileId("custom_fields", profileId),
-      getItemsByProfileId("balance_transactions", profileId),
-      getItem("goals", profileId),
-      getItemsByProfileId("strategies", profileId), // Load strategy data
-    ]);
+    let tradesData, pairsData, templatesData, customFieldsData, balanceData, goalData, strategiesData;
+
+    if (profileId === "all") {
+      const profilesData = await getAllItems("profiles");
+      const validProfileIds = profilesData.map(p => p.id);
+
+      const [allTrades, allPairs, allTemplates, allCustomFields, allBalance, allStrategies] = await Promise.all([
+        getAllItems("trades"),
+        getAllItems("pairs"),
+        getAllItems("templates"),
+        getAllItems("custom_fields"),
+        getAllItems("balance_transactions"),
+        getAllItems("strategies"),
+      ]);
+
+      tradesData = allTrades.filter(t => validProfileIds.includes(t.profileId));
+      pairsData = allPairs.filter(t => validProfileIds.includes(t.profileId));
+      templatesData = allTemplates.filter(t => validProfileIds.includes(t.profileId));
+      
+      const rawCustomFields = allCustomFields.filter(t => validProfileIds.includes(t.profileId));
+      const uniqueCFMap = new Map();
+      rawCustomFields.forEach(cf => {
+        if (!uniqueCFMap.has(cf.name)) uniqueCFMap.set(cf.name, cf);
+      });
+      customFieldsData = Array.from(uniqueCFMap.values());
+
+      balanceData = allBalance.filter(t => validProfileIds.includes(t.profileId));
+      strategiesData = allStrategies.filter(t => validProfileIds.includes(t.profileId));
+      goalData = null;
+    } else {
+      [
+        tradesData,
+        pairsData,
+        templatesData,
+        customFieldsData,
+        balanceData,
+        goalData,
+        strategiesData,
+      ] = await Promise.all([
+        getItemsByProfileId("trades", profileId),
+        getItemsByProfileId("pairs", profileId),
+        getItemsByProfileId("templates", profileId),
+        getItemsByProfileId("custom_fields", profileId),
+        getItemsByProfileId("balance_transactions", profileId),
+        getItem("goals", profileId),
+        getItemsByProfileId("strategies", profileId),
+      ]);
+    }
 
     setTrades(tradesData);
     setPairs(pairsData.sort((a, b) => a.createdAt - b.createdAt));
@@ -1624,8 +1659,53 @@ function App() {
     } else {
       growthPercentage = (netPnl / startingBalance) * 100;
     }
+    let profileBreakdown = null;
+    if (activeProfile?.id === "all" && tradingProfiles.length > 0) {
+      profileBreakdown = tradingProfiles.map(p => {
+        const pTrades = statsTrades.filter(t => t.profileId === p.id);
+        const pNetPnl = pTrades.reduce((s, t) => s + (parseFloat(t.pnl) || 0), 0);
+        
+        const pDepositsBefore = balanceTransactions
+          .filter(t => t.profileId === p.id && new Date(t.date).getTime() < startOfPeriod.getTime())
+          .reduce((sum, t) => sum + (t.type === "deposit" ? t.amount : -t.amount), 0);
+        const pTradesBefore = trades
+          .filter(t => t.profileId === p.id && new Date(t.tradeDate).getTime() < startOfPeriod.getTime())
+          .reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+        const pStartingBalance = pDepositsBefore + pTradesBefore;
+        
+        const pTotalDeposits = balanceTransactions
+          .filter(t => t.profileId === p.id && t.type === "deposit")
+          .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+        let pGrowthPercentage = 0;
+        if (activePeriod === "all" || pStartingBalance <= 0) {
+          pGrowthPercentage = pTotalDeposits > 0 ? (pNetPnl / pTotalDeposits) * 100 : 0;
+        } else {
+          pGrowthPercentage = (pNetPnl / pStartingBalance) * 100;
+        }
+        
+        const pWins = pTrades.filter(t => (parseFloat(t.pnl) || 0) > 0).length;
+        const pLosses = pTrades.filter(t => (parseFloat(t.pnl) || 0) <= 0).length;
+        
+        const pBestTrade = pTrades.length > 0 ? Math.max(...pTrades.map(t => parseFloat(t.pnl) || 0)) : 0;
+        const pWorstTrade = pTrades.length > 0 ? Math.min(...pTrades.map(t => parseFloat(t.pnl) || 0)) : 0;
+
+        return {
+          id: p.id,
+          name: p.name,
+          currency: p.currency,
+          netPnl: pNetPnl,
+          growthPercentage: pGrowthPercentage,
+          wins: pWins,
+          losses: pLosses,
+          bestTrade: pBestTrade,
+          worstTrade: pWorstTrade,
+        };
+      });
+    }
 
     return {
+      profileBreakdown,
       netPnl,
       tradeWinRate,
       wins,
@@ -2133,6 +2213,7 @@ function App() {
             customFields={customFields}
             activeProfileId={activeProfile.id}
             strategies={strategies}
+            tradingProfiles={tradingProfiles}
           />
         )}
         {viewingTrade && (() => {
@@ -2158,6 +2239,7 @@ function App() {
               onPrev={() => handleNavigateDetail("prev")}
               hasNext={hasNav}
               hasPrev={hasNav}
+              tradingProfiles={tradingProfiles}
             />
           );
         })()}
@@ -2414,20 +2496,24 @@ function App() {
                   </button>
                 </>
               )}
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center border border-gray-200 dark:border-gray-700">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Saldo Saat Ini
-                </div>
-                <div className="text-lg font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(currentBalance, activeProfile?.currency)}
-                </div>
-              </div>
-              <button
-                onClick={() => setIsTransactionModalVisible(true)}
-                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg flex items-center text-sm font-semibold"
-              >
-                <Wallet size={16} className="mr-2" /> Kelola Saldo
-              </button>
+              {activeProfile?.id !== "all" && (
+                <>
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-center border border-gray-200 dark:border-gray-700">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Saldo Saat Ini
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {formatCurrency(currentBalance, activeProfile?.currency)}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsTransactionModalVisible(true)}
+                    className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg flex items-center text-sm font-semibold"
+                  >
+                    <Wallet size={16} className="mr-2" /> Kelola Saldo
+                  </button>
+                </>
+              )}
             </div>
           </header>
 
@@ -2622,6 +2708,8 @@ function App() {
                                   trades={filteredTrades}
                                   customFields={customFields}
                                   currency={activeProfile?.currency}
+                                  activeProfileId={activeProfile?.id}
+                                  tradingProfiles={tradingProfiles}
                                 />
                               </div>
                             </div>
@@ -2668,6 +2756,8 @@ function App() {
                                     sortConfig={sortConfig}
                                     customFields={customFields}
                                     currency={activeProfile?.currency}
+                                    activeProfileId={activeProfile?.id}
+                                    tradingProfiles={tradingProfiles}
                                   />
                                 )}
                               </div>
@@ -2798,12 +2888,25 @@ function App() {
                               {isLayoutEditMode && renderLayoutControls(widget)}
                               <StatCard
                                 title="Net P&L"
-                                value={formatCurrency(performanceStats.netPnl, activeProfile?.currency)}
+                                value={activeProfile?.id === "all" ? null : formatCurrency(performanceStats.netPnl, activeProfile?.currency)}
                                 icon={<DollarSign size={16} />}
                                 footer={
-                                  <span className={performanceStats.netPnl >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}>
-                                    {performanceStats.netPnl >= 0 ? "Profit" : "Loss"}
-                                  </span>
+                                  performanceStats.profileBreakdown ? (
+                                    <div className="flex flex-col space-y-1.5 w-full mt-2">
+                                      {performanceStats.profileBreakdown.map(p => (
+                                        <div key={p.id} className="flex justify-between items-center text-sm w-full">
+                                          <span className="text-gray-600 dark:text-gray-300 font-medium truncate pr-2 max-w-[100px]">{p.name}</span>
+                                          <span className={`font-bold ${p.netPnl >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                                            {formatCurrency(p.netPnl, p.currency)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className={performanceStats.netPnl >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}>
+                                      {performanceStats.netPnl >= 0 ? "Profit" : "Loss"}
+                                    </span>
+                                  )
                                 }
                               />
                             </div>
@@ -2825,12 +2928,25 @@ function App() {
                               {isLayoutEditMode && renderLayoutControls(widget)}
                               <StatCard
                                 title="Account Growth"
-                                value={`${performanceStats.growthPercentage >= 0 ? "+" : ""}${performanceStats.growthPercentage.toFixed(2)}%`}
+                                value={activeProfile?.id === "all" ? null : `${performanceStats.growthPercentage >= 0 ? "+" : ""}${performanceStats.growthPercentage.toFixed(2)}%`}
                                 icon={<TrendingUp size={16} className={performanceStats.growthPercentage >= 0 ? "text-green-400" : "text-red-400"} />}
                                 footer={
-                                  <span className={performanceStats.growthPercentage >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}>
-                                    {performanceStats.growthPercentage >= 0 ? "Pertumbuhan Positif" : "Pertumbuhan Negatif"}
-                                  </span>
+                                  performanceStats.profileBreakdown ? (
+                                    <div className="flex flex-col space-y-1.5 w-full mt-2">
+                                      {performanceStats.profileBreakdown.map(p => (
+                                        <div key={p.id} className="flex justify-between items-center text-sm w-full">
+                                          <span className="text-gray-600 dark:text-gray-300 font-medium truncate pr-2 max-w-[100px]">{p.name}</span>
+                                          <span className={`font-bold ${p.growthPercentage >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                                            {p.growthPercentage >= 0 ? "+" : ""}{p.growthPercentage.toFixed(2)}%
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className={performanceStats.growthPercentage >= 0 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}>
+                                      {performanceStats.growthPercentage >= 0 ? "Pertumbuhan Positif" : "Pertumbuhan Negatif"}
+                                    </span>
+                                  )
                                 }
                               />
                             </div>
@@ -2854,11 +2970,24 @@ function App() {
                                 title="Trade Win %"
                                 icon={<Target size={16} />}
                                 footer={
-                                  <span>
-                                    <span className="text-green-500 dark:text-green-400">{performanceStats.wins} menang</span>{" "}
-                                    /{" "}
-                                    <span className="text-red-500 dark:text-red-400">{performanceStats.losses} kalah</span>
-                                  </span>
+                                  performanceStats.profileBreakdown ? (
+                                    <div className="flex flex-col space-y-1.5 w-full mt-2">
+                                      {performanceStats.profileBreakdown.map(p => (
+                                        <div key={p.id} className="flex justify-between items-center text-sm w-full">
+                                          <span className="text-gray-600 dark:text-gray-300 font-medium truncate pr-2 max-w-[100px]">{p.name}</span>
+                                          <span className="font-bold text-gray-700 dark:text-gray-300">
+                                            <span className="text-green-500">{p.wins}W</span> / <span className="text-red-500">{p.losses}L</span>
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span>
+                                      <span className="text-green-500 dark:text-green-400">{performanceStats.wins} menang</span>{" "}
+                                      /{" "}
+                                      <span className="text-red-500 dark:text-red-400">{performanceStats.losses} kalah</span>
+                                    </span>
+                                  )
                                 }
                               >
                                 <GaugeChart value={performanceStats.tradeWinRate} />
@@ -2882,9 +3011,24 @@ function App() {
                               {isLayoutEditMode && renderLayoutControls(widget)}
                               <StatCard
                                 title="Best Trade"
-                                value={formatCurrency(performanceStats.bestTrade, activeProfile?.currency)}
+                                value={activeProfile?.id === "all" ? null : formatCurrency(performanceStats.bestTrade, activeProfile?.currency)}
                                 icon={<ArrowUpRight size={16} className="text-green-500" />}
-                                footer={<span className="text-gray-500">Profit Terbesar Periode Ini</span>}
+                                footer={
+                                  performanceStats.profileBreakdown ? (
+                                    <div className="flex flex-col space-y-1.5 w-full mt-2">
+                                      {performanceStats.profileBreakdown.map(p => (
+                                        <div key={p.id} className="flex justify-between items-center text-sm w-full">
+                                          <span className="text-gray-600 dark:text-gray-300 font-medium truncate pr-2 max-w-[100px]">{p.name}</span>
+                                          <span className="font-bold text-green-500 dark:text-green-400">
+                                            {formatCurrency(p.bestTrade, p.currency)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-500">Profit Terbesar Periode Ini</span>
+                                  )
+                                }
                               />
                             </div>
                           );
@@ -2905,9 +3049,24 @@ function App() {
                               {isLayoutEditMode && renderLayoutControls(widget)}
                               <StatCard
                                 title="Worst Trade"
-                                value={formatCurrency(performanceStats.worstTrade, activeProfile?.currency)}
+                                value={activeProfile?.id === "all" ? null : formatCurrency(performanceStats.worstTrade, activeProfile?.currency)}
                                 icon={<ArrowDownRight size={16} className="text-red-500" />}
-                                footer={<span className="text-gray-500">Loss Terbesar Periode Ini</span>}
+                                footer={
+                                  performanceStats.profileBreakdown ? (
+                                    <div className="flex flex-col space-y-1.5 w-full mt-2">
+                                      {performanceStats.profileBreakdown.map(p => (
+                                        <div key={p.id} className="flex justify-between items-center text-sm w-full">
+                                          <span className="text-gray-600 dark:text-gray-300 font-medium truncate pr-2 max-w-[100px]">{p.name}</span>
+                                          <span className="font-bold text-red-500 dark:text-red-400">
+                                            {formatCurrency(p.worstTrade, p.currency)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-500">Loss Terbesar Periode Ini</span>
+                                  )
+                                }
                               />
                             </div>
                           );
@@ -3173,6 +3332,7 @@ function App() {
                 openDeleteModal={openDeleteModal}
                 strategies={strategies}
                 onRefresh={() => refreshAllData(activeProfile.id)}
+                tradingProfiles={tradingProfiles}
               />
             )}
 
@@ -3188,6 +3348,8 @@ function App() {
                 onCloseTrade={handleCloseTrade}
                 customFields={customFields}
                 currency={activeProfile?.currency}
+                activeProfileId={activeProfile?.id}
+                tradingProfiles={tradingProfiles}
               />
             )}
             {activeView === "gallery" && (
@@ -3204,6 +3366,8 @@ function App() {
                 setCustomEndDate={setCustomEndDate}
                 customFields={customFields}
                 onFilteredTradesChange={setActiveGalleryTrades}
+                activeProfileId={activeProfile?.id}
+                tradingProfiles={tradingProfiles}
               />
             )}
             {activeView === "sync" && activeProfile && (

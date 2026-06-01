@@ -12,6 +12,8 @@ export const CalendarView = ({
   onCloseTrade,
   customFields,
   currency,
+  activeProfileId,
+  tradingProfiles,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -109,24 +111,83 @@ export const CalendarView = ({
     isSwipeGesture.current = false;
   };
 
+  const allUSDVal = useMemo(() => {
+    return !tradingProfiles || tradingProfiles.length === 0 || tradingProfiles.every(p => p.currency === "USD");
+  }, [tradingProfiles]);
+
+  const getPnlStatus = (pnlVal) => {
+    if (typeof pnlVal === "number") {
+      return pnlVal > 0 ? "win" : pnlVal < 0 ? "loss" : "zero";
+    }
+    const sum = Object.values(pnlVal).reduce((a, b) => a + b, 0);
+    return sum > 0 ? "win" : sum < 0 ? "loss" : "zero";
+  };
+
+  const formatPnl = (pnlVal) => {
+    if (allUSDVal) {
+      const numericVal = typeof pnlVal === "number" ? pnlVal : Object.values(pnlVal).reduce((a, b) => a + b, 0);
+      return formatCurrency(numericVal, "USD");
+    }
+
+    if (typeof pnlVal === "number") {
+      return formatCurrency(pnlVal, "USD");
+    }
+
+    const parts = Object.keys(pnlVal).map(curr => {
+      return formatCurrency(pnlVal[curr], curr);
+    });
+
+    return `(${parts.join(" + ")})`;
+  };
+
   const tradesByDate = useMemo(() => {
     const map = new Map();
+    const allUSD = !tradingProfiles || tradingProfiles.length === 0 || tradingProfiles.every(p => p.currency === "USD");
+    const uniqueCurrencies = Array.from(new Set((tradingProfiles || []).map(p => p.currency || "USD")));
+    if (uniqueCurrencies.length === 0) uniqueCurrencies.push("USD");
+
     trades.forEach((trade) => {
       const dateStr = formatDate(trade.tradeDate);
       if (!map.has(dateStr)) {
-        map.set(dateStr, { pnl: 0, trades: [], wins: 0, losses: 0 });
+        const initialPnl = allUSD ? 0 : {};
+        if (!allUSD) {
+          uniqueCurrencies.forEach(curr => {
+            initialPnl[curr] = 0;
+          });
+        }
+        map.set(dateStr, { pnl: initialPnl, trades: [], wins: 0, losses: 0 });
       }
       const dayData = map.get(dateStr);
-      dayData.pnl += trade.pnl;
       dayData.trades.push(trade);
       if (trade.pnl > 0) dayData.wins++;
       else if (trade.pnl < 0) dayData.losses++;
+
+      if (allUSD) {
+        dayData.pnl += trade.pnl || 0;
+      } else {
+        const profile = tradingProfiles?.find(p => p.id === trade.profileId);
+        const curr = profile?.currency || "USD";
+        if (dayData.pnl[curr] === undefined) {
+          dayData.pnl[curr] = 0;
+        }
+        dayData.pnl[curr] += trade.pnl || 0;
+      }
     });
     return map;
-  }, [trades]);
+  }, [trades, tradingProfiles]);
 
   const monthlyPnl = useMemo(() => {
-    let total = 0;
+    const allUSD = !tradingProfiles || tradingProfiles.length === 0 || tradingProfiles.every(p => p.currency === "USD");
+    const uniqueCurrencies = Array.from(new Set((tradingProfiles || []).map(p => p.currency || "USD")));
+    if (uniqueCurrencies.length === 0) uniqueCurrencies.push("USD");
+
+    let total = allUSD ? 0 : {};
+    if (!allUSD) {
+      uniqueCurrencies.forEach(curr => {
+        total[curr] = 0;
+      });
+    }
+
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
 
@@ -136,11 +197,17 @@ export const CalendarView = ({
         date.getMonth() === currentMonth &&
         date.getFullYear() === currentYear
       ) {
-        total += dayData.pnl;
+        if (allUSD) {
+          total += dayData.pnl;
+        } else {
+          Object.keys(dayData.pnl).forEach(curr => {
+            total[curr] = (total[curr] || 0) + dayData.pnl[curr];
+          });
+        }
       }
     });
     return total;
-  }, [tradesByDate, currentDate]);
+  }, [tradesByDate, currentDate, tradingProfiles]);
 
   const handleDayClick = (day) => {
     if (preventClickRef.current) return;
@@ -229,16 +296,18 @@ export const CalendarView = ({
             <span
               className={classNames(
                 "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] md:text-xs font-semibold backdrop-blur-md border shadow-sm transition-all duration-300",
-                monthlyPnl >= 0
+                getPnlStatus(monthlyPnl) === "win"
                   ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(0,230,118,0.06)]"
-                  : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(255,23,68,0.06)]",
+                  : getPnlStatus(monthlyPnl) === "loss"
+                    ? "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(255,23,68,0.06)]"
+                    : "bg-gray-500/10 border-gray-500/20 text-gray-600 dark:text-gray-400 shadow-[0_0_10px_rgba(150,150,150,0.06)]",
               )}
             >
               <span className="text-gray-500 dark:text-gray-400/80 font-medium">
                 P&L Bulan Ini:
               </span>
               <span className="font-extrabold tracking-tight">
-                {formatCurrency(monthlyPnl, currency)}
+                {formatPnl(monthlyPnl)}
               </span>
             </span>
           </div>
@@ -272,7 +341,15 @@ export const CalendarView = ({
 
     for (let i = 0; i < 6; i++) {
       const daysInWeek = [];
-      let weeklyPnl = 0;
+      const uniqueCurrencies = Array.from(new Set((tradingProfiles || []).map(p => p.currency || "USD")));
+      if (uniqueCurrencies.length === 0) uniqueCurrencies.push("USD");
+
+      let weeklyPnl = allUSDVal ? 0 : {};
+      if (!allUSDVal) {
+        uniqueCurrencies.forEach(curr => {
+          weeklyPnl[curr] = 0;
+        });
+      }
       let weeklyTradeDays = 0;
 
       for (let j = 0; j < 7; j++) {
@@ -280,7 +357,13 @@ export const CalendarView = ({
         const dayStr = formatDate(cloneDay);
         const dayData = tradesByDate.get(dayStr);
         if (dayData) {
-          weeklyPnl += dayData.pnl;
+          if (allUSDVal) {
+            weeklyPnl += dayData.pnl;
+          } else {
+            Object.keys(dayData.pnl).forEach(curr => {
+              weeklyPnl[curr] = (weeklyPnl[curr] || 0) + dayData.pnl[curr];
+            });
+          }
           weeklyTradeDays++;
         }
         const winRate = dayData
@@ -298,13 +381,13 @@ export const CalendarView = ({
               dayData
                 ? "cursor-pointer hover:-translate-y-0.5 shadow-sm"
                 : "hover:bg-gray-100/30 dark:hover:bg-gray-800/10",
-              dayData && dayData.pnl > 0
+              dayData && getPnlStatus(dayData.pnl) === "win"
                 ? "bg-gradient-to-br from-green-500/15 via-green-500/5 to-transparent border-green-500/35 hover:border-green-500/60 dark:from-green-950/60 dark:via-green-950/20 dark:to-transparent dark:border-green-500/30 dark:hover:border-green-500/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(0,230,118,0.05)] hover:shadow-[0_4px_16px_rgba(0,230,118,0.15)] text-green-900 dark:text-green-200"
                 : "",
-              dayData && dayData.pnl < 0
+              dayData && getPnlStatus(dayData.pnl) === "loss"
                 ? "bg-gradient-to-br from-red-500/15 via-red-500/5 to-transparent border-red-500/35 hover:border-red-500/60 dark:from-red-950/50 dark:via-red-950/15 dark:to-transparent dark:border-red-500/30 dark:hover:border-red-500/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),_0_2px_8px_-2px_rgba(255,23,68,0.05)] hover:shadow-[0_4px_16px_rgba(255,23,68,0.15)] text-red-900 dark:text-red-200"
                 : "",
-              dayData && dayData.pnl === 0
+              dayData && getPnlStatus(dayData.pnl) === "zero"
                 ? "bg-gradient-to-br from-gray-500/15 to-transparent border-gray-500/30 hover:border-gray-500/50 dark:border-gray-700/40 dark:hover:border-gray-700/70 text-gray-800 dark:text-gray-200"
                 : "",
               formatDate(selectedDate) === dayStr
@@ -338,12 +421,14 @@ export const CalendarView = ({
                 <p
                   className={classNames(
                     "font-bold text-xs md:text-sm tracking-tight",
-                    dayData.pnl > 0
+                    getPnlStatus(dayData.pnl) === "win"
                       ? "text-green-600 dark:text-green-400 drop-shadow-[0_0_6px_rgba(0,230,118,0.1)]"
-                      : "text-red-600 dark:text-red-400 drop-shadow-[0_0_6px_rgba(255,23,68,0.1)]",
+                      : getPnlStatus(dayData.pnl) === "loss"
+                        ? "text-red-600 dark:text-red-400 drop-shadow-[0_0_6px_rgba(255,23,68,0.1)]"
+                        : "text-gray-650 dark:text-gray-400",
                   )}
                 >
-                  {formatCurrency(dayData.pnl, currency)}
+                  {formatPnl(dayData.pnl)}
                 </p>
 
                 <div className="flex justify-between items-center text-[9px] md:text-[10px] text-gray-500/80 dark:text-gray-400/70 font-medium">
@@ -392,12 +477,14 @@ export const CalendarView = ({
                 <p
                   className={classNames(
                     "font-extrabold text-xs md:text-sm tracking-tight",
-                    weeklyPnl > 0
+                    getPnlStatus(weeklyPnl) === "win"
                       ? "text-green-500 dark:text-green-400 drop-shadow-[0_0_6px_rgba(0,230,118,0.15)]"
-                      : "text-red-500 dark:text-red-400 drop-shadow-[0_0_6px_rgba(255,23,68,0.15)]",
+                      : getPnlStatus(weeklyPnl) === "loss"
+                        ? "text-red-500 dark:text-red-400 drop-shadow-[0_0_6px_rgba(255,23,68,0.15)]"
+                        : "text-gray-500 dark:text-gray-400",
                   )}
                 >
-                  {formatCurrency(weeklyPnl, currency)}
+                  {formatPnl(weeklyPnl)}
                 </p>
                 <span className="text-[9px] text-gray-400/80 dark:text-gray-500 mt-1 font-medium">
                   {weeklyTradeDays} Hari
@@ -467,6 +554,8 @@ export const CalendarView = ({
           })}`}
           customFields={customFields}
           currency={currency}
+          activeProfileId={activeProfileId}
+          tradingProfiles={tradingProfiles}
         />
       )}
     </div>
