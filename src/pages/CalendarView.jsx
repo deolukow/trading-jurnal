@@ -18,9 +18,10 @@ export const CalendarView = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // Swipe month navigation states & refs
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  // Swipe month navigation refs bypassing React state for 60fps mobile performance
+  const containerRef = useRef(null);
+  const dragOffsetRef = useRef(0);
+  const isDraggingRef = useRef(false);
   const startX = useRef(0);
   const startY = useRef(0);
   const pointerId = useRef(null);
@@ -28,10 +29,8 @@ export const CalendarView = ({
   const preventClickRef = useRef(false);
 
   const handlePointerDown = (e) => {
-    // Only capture primary touch or left mouse click
     if (e.button !== 0 && e.pointerType === "mouse") return;
 
-    // Ignore interactive targets (select dropdowns, buttons)
     const target = e.target;
     if (
       target.tagName === "SELECT" ||
@@ -42,72 +41,75 @@ export const CalendarView = ({
       return;
     }
 
-    // Do NOT capture the pointer here. We will do it once a drag is confirmed.
     pointerId.current = e.pointerId;
     startX.current = e.clientX;
     startY.current = e.clientY;
-    setIsDragging(true);
-    setDragOffset(0);
+    isDraggingRef.current = true;
+    dragOffsetRef.current = 0;
     isSwipeGesture.current = false;
     preventClickRef.current = false;
   };
 
   const handlePointerMove = (e) => {
-    if (!isDragging || pointerId.current !== e.pointerId) return;
+    if (!isDraggingRef.current || pointerId.current !== e.pointerId) return;
 
     const diffX = e.clientX - startX.current;
     const diffY = e.clientY - startY.current;
 
-    // Detect horizontal swiping intent
     if (!isSwipeGesture.current) {
       if (Math.abs(diffX) > 15 || Math.abs(diffY) > 15) {
         if (Math.abs(diffX) > Math.abs(diffY)) {
           isSwipeGesture.current = true;
           preventClickRef.current = true;
-          // Capture the pointer NOW that we are certain it's a drag swipe!
           try {
             e.currentTarget.setPointerCapture(pointerId.current);
           } catch (err) { }
         } else {
-          // If vertical swipe dominates (e.g. page scrolling), cancel swipe
-          setIsDragging(false);
+          isDraggingRef.current = false;
           pointerId.current = null;
         }
       }
     }
 
     if (isSwipeGesture.current) {
-      setDragOffset(diffX);
+      dragOffsetRef.current = diffX;
+      if (containerRef.current) {
+        containerRef.current.style.transition = "none";
+        containerRef.current.style.transform = `translateX(${diffX}px)`;
+      }
     }
   };
 
   const handlePointerUp = (e) => {
-    if (!isDragging || pointerId.current !== e.pointerId) return;
+    if (!isDraggingRef.current || pointerId.current !== e.pointerId) return;
 
     try {
       e.currentTarget.releasePointerCapture(pointerId.current);
     } catch (err) { }
 
-    setIsDragging(false);
+    isDraggingRef.current = false;
     pointerId.current = null;
 
     if (isSwipeGesture.current) {
-      const threshold = 100; // px to trigger month change
+      const threshold = 100;
+      const dragOffset = dragOffsetRef.current;
       if (dragOffset > threshold) {
-        // Swipe Right -> Prev Month
         setCurrentDate((p) => new Date(p.getFullYear(), p.getMonth() - 1, 1));
       } else if (dragOffset < -threshold) {
-        // Swipe Left -> Next Month
         setCurrentDate((p) => new Date(p.getFullYear(), p.getMonth() + 1, 1));
       }
     }
 
-    // Delayed reset to ensure tap events do not register click actions instantly
+    if (containerRef.current) {
+      containerRef.current.style.transition = "transform 0.4s cubic-bezier(0.2, 0.8, 0.25, 1)";
+      containerRef.current.style.transform = "";
+    }
+
     setTimeout(() => {
       preventClickRef.current = false;
     }, 50);
 
-    setDragOffset(0);
+    dragOffsetRef.current = 0;
     isSwipeGesture.current = false;
   };
 
@@ -524,9 +526,9 @@ export const CalendarView = ({
         onPointerCancel={handlePointerUp}
       >
         <div
+          ref={containerRef}
           style={{
-            transform: `translateX(${dragOffset}px)`,
-            transition: isDragging ? "none" : "transform 0.4s cubic-bezier(0.2, 0.8, 0.25, 1)",
+            transition: "transform 0.4s cubic-bezier(0.2, 0.8, 0.25, 1)",
           }}
         >
           {renderHeader()}
