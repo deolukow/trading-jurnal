@@ -64,6 +64,7 @@ import { Toast } from "./components/common/Toast";
 import { SidebarLink } from "./components/common/SidebarLink";
 import { TradeList } from "./components/common/TradeList";
 import { YearlySummary } from "./components/common/YearlySummary";
+import { SplashScreen } from "./components/common/SplashScreen";
 
 import { ConfirmationModal } from "./components/modals/ConfirmationModal";
 import { FullscreenImageModal } from "./components/modals/FullscreenImageModal";
@@ -115,6 +116,11 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [loginError, setLoginError] = useState("");
 
+  // Splash Screen States
+  const [isMinDurationPassed, setIsMinDurationPassed] = useState(false);
+  const [splashFadeOut, setSplashFadeOut] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+
   const [toast, setToast] = useState({ message: "", type: "" });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopSidebarVisible, setIsDesktopSidebarVisible] = useState(true);
@@ -165,6 +171,25 @@ function App() {
       document.body.removeChild(script);
     };
   }, []);
+
+  // Splash Screen timer control
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMinDurationPassed(true);
+    }, 2500); // Minimum 2.5 seconds splash display
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Fade out splash screen ONLY after minimum duration passes AND authentication loading check is complete
+    if (isMinDurationPassed && isAuthReady && !isLoading) {
+      setSplashFadeOut(true);
+      const removeTimer = setTimeout(() => {
+        setShowSplash(false);
+      }, 900); // Matches transition duration in SplashScreen.jsx (850ms + 50ms buffer)
+      return () => clearTimeout(removeTimer);
+    }
+  }, [isMinDurationPassed, isAuthReady, isLoading]);
 
   // --- STATES & REFS FOR NOTES WIDGET ---
   const [notesText, setNotesText] = useState("");
@@ -220,7 +245,7 @@ function App() {
         const newImgId = crypto.randomUUID();
         await addItem("trade_images", { id: newImgId, file: imageFile });
         finalImgId = newImgId;
-        
+
         const url = URL.createObjectURL(imageFile);
         setNotesImageUrl(url);
       }
@@ -529,8 +554,8 @@ function App() {
               }}
               disabled={isFirst}
               className={`p-1.5 rounded-lg border flex items-center justify-center transition-all ${isFirst
-                  ? "bg-gray-900 text-gray-700 border-gray-800 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                ? "bg-gray-900 text-gray-700 border-gray-800 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
                 }`}
               title="Pindahkan ke Depan"
             >
@@ -544,8 +569,8 @@ function App() {
               }}
               disabled={isLast}
               className={`p-1.5 rounded-lg border flex items-center justify-center transition-all ${isLast
-                  ? "bg-gray-900 text-gray-700 border-gray-800 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
+                ? "bg-gray-900 text-gray-700 border-gray-800 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500 text-white border-blue-400/30 hover:scale-105 active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.4)]"
                 }`}
               title="Pindahkan ke Belakang"
             >
@@ -568,8 +593,8 @@ function App() {
                   }}
                   disabled={widget.w <= 1}
                   className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.w <= 1
-                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
-                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                    : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
                     }`}
                 >
                   -
@@ -582,8 +607,8 @@ function App() {
                   }}
                   disabled={widget.w >= 4}
                   className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.w >= 4
-                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
-                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                    : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
                     }`}
                 >
                   +
@@ -602,8 +627,8 @@ function App() {
                   }}
                   disabled={widget.h <= 1}
                   className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.h <= 1
-                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
-                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                    : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
                     }`}
                 >
                   -
@@ -616,8 +641,8 @@ function App() {
                   }}
                   disabled={widget.h >= 4}
                   className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-all ${widget.h >= 4
-                      ? "bg-gray-900 text-gray-700 cursor-not-allowed"
-                      : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
+                    ? "bg-gray-900 text-gray-700 cursor-not-allowed"
+                    : "bg-gray-800 hover:bg-gray-700 text-white hover:scale-105"
                     }`}
                 >
                   +
@@ -716,7 +741,7 @@ function App() {
           `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
           {
             method: "PATCH",
-            headers: { 
+            headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json"
             },
@@ -787,7 +812,7 @@ function App() {
           `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
           {
             method: "PATCH",
-            headers: { 
+            headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json"
             },
@@ -1770,50 +1795,63 @@ function App() {
     return periods.find((p) => p.key === activePeriod)?.label;
   };
 
+
+
   if (!isAuthReady || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-900 dark:text-white">
-        Memuat Autentikasi...
-      </div>
+      <>
+        {showSplash && <SplashScreen fadeOut={splashFadeOut} />}
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-900 dark:text-white">
+          Memuat Autentikasi...
+        </div>
+      </>
     );
   }
 
   if (!user) {
-    return <LoginPage onLogin={handleLogin} error={loginError} />;
+    return (
+      <>
+        {showSplash && <SplashScreen fadeOut={splashFadeOut} />}
+        <LoginPage onLogin={handleLogin} error={loginError} />
+      </>
+    );
   }
 
   if (isAuthReady && !isLoading && tradingProfiles.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center text-gray-900 dark:text-white">
-        {isProfileModalVisible && (
-          <ProfileManagementModal
-            showToast={showToast}
-            onClose={() => {
-              setIsProfileModalVisible(false);
-              refreshProfiles();
-            }}
-            profiles={tradingProfiles}
-            openDeleteModal={openDeleteModal}
+      <>
+        {showSplash && <SplashScreen fadeOut={splashFadeOut} />}
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center text-gray-900 dark:text-white">
+          {isProfileModalVisible && (
+            <ProfileManagementModal
+              showToast={showToast}
+              onClose={() => {
+                setIsProfileModalVisible(false);
+                refreshProfiles();
+              }}
+              profiles={tradingProfiles}
+              openDeleteModal={openDeleteModal}
+            />
+          )}
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast({ message: "", type: "" })}
           />
-        )}
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast({ message: "", type: "" })}
-        />
-        <h2 className="text-2xl font-bold mb-4">
-          Selamat Datang, {user.email}!
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
-          Untuk memulai, silakan buat profil trading pertama Anda.
-        </p>
-        <button
-          onClick={() => setIsProfileModalVisible(true)}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-        >
-          <PlusCircle size={20} className="mr-2" /> Buat Profil Trading
-        </button>
-      </div>
+          <h2 className="text-2xl font-bold mb-4">
+            Selamat Datang, {user.email}!
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            Untuk memulai, silakan buat profil trading pertama Anda.
+          </p>
+          <button
+            onClick={() => setIsProfileModalVisible(true)}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+          >
+            <PlusCircle size={20} className="mr-2" /> Buat Profil Trading
+          </button>
+        </div>
+      </>
     );
   }
 
@@ -1830,10 +1868,10 @@ function App() {
           <span className="text-2xl font-black italic tracking-tighter text-gray-900 dark:text-white">
             Wz<span className="text-amber-500 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.2)]">Gold</span>
           </span>
-          
+
           {/* Thin vertical divider line */}
           <div className="w-[1.5px] h-8 bg-gray-300 dark:bg-gray-700/80 mx-3"></div>
-          
+
           {/* Right portion: Trading Jurnal stacked vertically */}
           <div className="flex flex-col justify-center leading-none text-left">
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
@@ -1844,7 +1882,7 @@ function App() {
             </span>
           </div>
         </div>
-        
+
         {/* Subtle developer credit subtext */}
         <p className="text-[9px] text-gray-400 dark:text-gray-600 mt-2 font-medium tracking-wide uppercase group-hover:text-gray-500 dark:group-hover:text-gray-500 transition-colors pl-0.5">
           created by Deo Lukow (2025)
@@ -2028,6 +2066,7 @@ function App() {
 
   return (
     <>
+      {showSplash && <SplashScreen fadeOut={splashFadeOut} />}
       <style>{`
         @keyframes slideIn {
           from { transform: translateX(-100%); }
@@ -2638,7 +2677,7 @@ function App() {
                                       placeholder="Tulis quotes motivasi, reminder trading plan, atau kata penyemangat Anda di sini..."
                                       className="w-full flex-grow p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-800 dark:text-gray-200 focus:outline-none resize-none min-h-[100px]"
                                     />
-                                    
+
                                     <div className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700/50">
                                       <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block">
                                         Pilih Gambar Penyemangat:
@@ -3027,7 +3066,7 @@ function App() {
                                       Rata-Rata
                                     </p>
                                   </div>
-                                  
+
                                   <div className="flex items-center justify-between w-full mt-4 pt-3 border-t border-gray-150 dark:border-gray-700/50">
                                     <div className="text-center flex-1">
                                       <p className="text-xs font-bold text-green-600 dark:text-green-400">
