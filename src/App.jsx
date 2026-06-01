@@ -1065,6 +1065,35 @@ function App() {
     setViewingTrade(trade);
   };
 
+  const handleNavigateDetail = (direction) => {
+    if (!viewingTrade) return;
+
+    let activeList = [];
+    if (activeView === "gallery") {
+      activeList = trades
+        .filter((t) => t.screenshotAfterId)
+        .sort((a, b) => new Date(b.tradeDate).getTime() - new Date(a.tradeDate).getTime());
+    } else if (activeView === "dashboard") {
+      activeList = sortedTrades || [];
+    } else {
+      activeList = [...trades].sort((a, b) => new Date(b.tradeDate).getTime() - new Date(a.tradeDate).getTime());
+    }
+
+    if (activeList.length <= 1) return;
+
+    const currentIndex = activeList.findIndex((t) => t.id === viewingTrade.id);
+    if (currentIndex === -1) return;
+
+    let nextIndex = currentIndex;
+    if (direction === "next") {
+      nextIndex = (currentIndex + 1) % activeList.length;
+    } else if (direction === "prev") {
+      nextIndex = (currentIndex - 1 + activeList.length) % activeList.length;
+    }
+
+    setViewingTrade(activeList[nextIndex]);
+  };
+
   const handleSaveTrade = async (tradeData, beforeFile, afterFile) => {
     if (!activeProfile) return;
 
@@ -2105,16 +2134,34 @@ function App() {
             strategies={strategies}
           />
         )}
-        {viewingTrade && (
-          <TradeDetailModal
-            trade={viewingTrade}
-            onClose={() => setViewingTrade(null)}
-            customFields={customFields}
-            currency={activeProfile?.currency}
-            activeProfileName={activeProfile?.name}
-            strategies={strategies}
-          />
-        )}
+        {viewingTrade && (() => {
+          let activeList = [];
+          if (activeView === "gallery") {
+            activeList = trades
+              .filter((t) => t.screenshotAfterId)
+              .sort((a, b) => new Date(b.tradeDate).getTime() - new Date(a.tradeDate).getTime());
+          } else if (activeView === "dashboard") {
+            activeList = sortedTrades || [];
+          } else {
+            activeList = [...trades].sort((a, b) => new Date(b.tradeDate).getTime() - new Date(a.tradeDate).getTime());
+          }
+          const hasNav = activeList.length > 1;
+
+          return (
+            <TradeDetailModal
+              trade={viewingTrade}
+              onClose={() => setViewingTrade(null)}
+              customFields={customFields}
+              currency={activeProfile?.currency}
+              activeProfileName={activeProfile?.name}
+              strategies={strategies}
+              onNext={() => handleNavigateDetail("next")}
+              onPrev={() => handleNavigateDetail("prev")}
+              hasNext={hasNav}
+              hasPrev={hasNav}
+            />
+          );
+        })()}
         {showDashboardShareModal && (() => {
           const getPeriodDates = () => {
             let start = new Date();

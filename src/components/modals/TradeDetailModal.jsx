@@ -8,13 +8,26 @@ import {
   Maximize2,
   Share2,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useLocalImage } from "../../hooks/useLocalImage";
 import { FullscreenImageModal } from "./FullscreenImageModal";
 import { ShareCardModal } from "./ShareCardModal";
 import { formatDateTime, formatCurrency, formatLotSize, formatDuration } from "../../utils/formatters";
 
-export const TradeDetailModal = ({ trade, onClose, customFields, currency, activeProfileName, strategies = [] }) => {
+export const TradeDetailModal = ({
+  trade,
+  onClose,
+  customFields,
+  currency,
+  activeProfileName,
+  strategies = [],
+  onNext,
+  onPrev,
+  hasNext,
+  hasPrev,
+}) => {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(-1);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -22,43 +35,78 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
   const beforeImageUrl = useLocalImage(trade?.screenshotBeforeId);
   const afterImageUrl = useLocalImage(trade?.screenshotAfterId);
 
-  // Touch Drag to Dismiss Logic
+  // Touch Drag & Slide-Swipe Logic
   const [translateY, setTranslateY] = useState(0);
+  const [translateX, setTranslateX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const dragDirection = useRef(null); // 'horizontal' | 'vertical' | null
 
   const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    dragDirection.current = null;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const currentX = e.touches[0].clientX;
     const currentY = e.touches[0].clientY;
+    const diffX = currentX - touchStartX.current;
     const diffY = currentY - touchStartY.current;
-    if (diffY > 0) {
-      setTranslateY(diffY);
+
+    if (!dragDirection.current) {
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 15) {
+        dragDirection.current = "horizontal";
+      } else if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 15) {
+        dragDirection.current = "vertical";
+      }
+    }
+
+    if (dragDirection.current === "horizontal" && (hasNext || hasPrev)) {
+      setTranslateX(diffX);
+    } else if (dragDirection.current === "vertical") {
+      if (diffY > 0) {
+        setTranslateY(diffY);
+      }
     }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
-    if (translateY > 120) {
-      onClose();
-    } else {
-      setTranslateY(0);
+    if (dragDirection.current === "vertical") {
+      if (translateY > 120) {
+        onClose();
+      } else {
+        setTranslateY(0);
+      }
+    } else if (dragDirection.current === "horizontal") {
+      if (translateX < -80 && onNext) {
+        onNext();
+      } else if (translateX > 80 && onPrev) {
+        onPrev();
+      }
+      setTranslateX(0);
     }
+    dragDirection.current = null;
   };
 
-  // Keyboard Escape listener
+  // Keyboard Escape & Arrow Keys listener
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         onClose();
+      } else if (e.key === "ArrowRight" && onNext) {
+        onNext();
+      } else if (e.key === "ArrowLeft" && onPrev) {
+        onPrev();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [onClose, onNext, onPrev]);
 
   // Backdrop click handler
   const handleBackdropClick = (e) => {
@@ -171,14 +219,51 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
           .animate-modalSpringIn {
             animation: modalSpringIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           }
+          @keyframes slideContentIn {
+            0% {
+              opacity: 0;
+              transform: translateX(12px);
+              filter: blur(1.5px);
+            }
+            100% {
+              opacity: 1;
+              transform: translateX(0);
+              filter: blur(0);
+            }
+          }
+          .animate-slideContentIn {
+            animation: slideContentIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
         `}</style>
         <div 
           className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-modalSpringIn relative border border-gray-100 dark:border-gray-700/50"
           style={{
-            transform: translateY > 0 ? `translateY(${translateY}px)` : undefined,
+            transform: `translate(${translateX}px, ${translateY}px)`,
             transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
           }}
         >
+          {/* Visual Floating Chevrons (Desktop layout only, floating outside viewport bounds) */}
+          {hasPrev && (
+            <button
+              type="button"
+              onClick={onPrev}
+              className="absolute left-[-70px] top-1/2 -translate-y-1/2 bg-white/95 dark:bg-gray-800/95 text-gray-700 dark:text-gray-200 p-3 rounded-full shadow-2xl border border-gray-250 dark:border-gray-700/80 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all duration-300 hidden xl:flex items-center justify-center cursor-pointer active:scale-95 group"
+              title="Trade Sebelumnya (Keyboard: ←)"
+            >
+              <ChevronLeft size={22} className="group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          )}
+          {hasNext && (
+            <button
+              type="button"
+              onClick={onNext}
+              className="absolute right-[-70px] top-1/2 -translate-y-1/2 bg-white/95 dark:bg-gray-800/95 text-gray-700 dark:text-gray-200 p-3 rounded-full shadow-2xl border border-gray-250 dark:border-gray-700/80 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all duration-300 hidden xl:flex items-center justify-center cursor-pointer active:scale-95 group"
+              title="Trade Selanjutnya (Keyboard: →)"
+            >
+              <ChevronRight size={22} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
+
           {/* Swipe drag handle indicator for mobile */}
           <div 
             className="md:hidden flex justify-center pb-3 cursor-grab active:cursor-grabbing select-none"
@@ -212,14 +297,39 @@ export const TradeDetailModal = ({ trade, onClose, customFields, currency, activ
                 </span>
               )}
             </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light leading-none p-1"
-            >
-              &times;
-            </button>
+            
+            <div className="flex items-center gap-3 flex-shrink-0 select-none">
+              {/* Header Navigation Chevrons (Mobile & Tablet friendly) */}
+              {(hasPrev || hasNext) && (
+                <div className="flex items-center gap-1 bg-gray-100/80 dark:bg-gray-700/60 p-1 rounded-lg border border-gray-200/45 dark:border-gray-650/40 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={onPrev}
+                    className="p-1 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded transition-all cursor-pointer active:scale-90"
+                    title="Sebelumnya (←)"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onNext}
+                    className="p-1 text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded transition-all cursor-pointer active:scale-90"
+                    title="Selanjutnya (→)"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+              
+              <button
+                onClick={onClose}
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors text-3xl font-light leading-none p-1 cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto flex-grow pr-1">
+          <div key={trade.id} className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto flex-grow pr-1 animate-slideContentIn">
             <div className="space-y-4 lg:col-span-1">
               <div className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200/50 dark:border-gray-700/30 space-y-3.5 shadow-sm">
                 <div className="flex items-center space-x-3">
