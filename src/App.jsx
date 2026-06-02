@@ -2258,6 +2258,7 @@ function App() {
               hasNext={hasNav}
               hasPrev={hasNav}
               tradingProfiles={tradingProfiles}
+              initialBalance={initialBalance}
             />
           );
         })()}

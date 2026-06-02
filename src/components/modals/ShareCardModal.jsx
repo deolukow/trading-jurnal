@@ -3,7 +3,7 @@ import { X, Check, Download, ShieldAlert, Sparkles, CheckCircle } from "lucide-r
 import { formatCurrency } from "../../utils/formatters";
 import { useLocalImage } from "../../hooks/useLocalImage";
 
-export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, strategies = [] }) => {
+export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, strategies = [], initialBalance = 0 }) => {
   const isDashboard = trade?.isDashboard || false;
 
   const [username, setUsername] = useState("deolukow");
@@ -19,11 +19,13 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, st
   const rawPnl = trade?.pnl || 0;
   const isWin = rawPnl > 0;
   
+  const balanceToUse = initialBalance > 0 ? initialBalance : 10000;
+
   const [pnlValue, setPnlValue] = useState(rawPnl);
   const [percentage, setPercentage] = useState(
     isDashboard 
       ? (trade?.type || "0.0%") 
-      : (isWin ? `+${((rawPnl / 1000) * 100).toFixed(0)}%` : `${((rawPnl / 1000) * 100).toFixed(0)}%`)
+      : (isWin ? `+${((rawPnl / balanceToUse) * 100).toFixed(2)}%` : `${((rawPnl / balanceToUse) * 100).toFixed(2)}%`)
   );
   const [ticks, setTicks] = useState(
     isDashboard 
@@ -102,7 +104,7 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, st
         setStartDate(trade.startDate || "");
         setEndDate(trade.endDate || "");
       } else {
-        const pct = ((trade.pnl / 1000) * 100).toFixed(0);
+        const pct = ((trade.pnl / balanceToUse) * 100).toFixed(2);
         setPercentage(trade.pnl > 0 ? `+${pct}%` : `${pct}%`);
         
         const tk = (trade.pnl / 10).toFixed(1);

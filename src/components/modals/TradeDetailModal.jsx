@@ -28,6 +28,7 @@ export const TradeDetailModal = ({
   hasNext,
   hasPrev,
   tradingProfiles,
+  initialBalance,
 }) => {
   const [fullscreenImageIndex, setFullscreenImageIndex] = useState(-1);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -207,6 +208,7 @@ export const TradeDetailModal = ({
           currency={tradeCurrency}
           activeProfileName={activeProfileName || tradeProfile?.name}
           strategies={strategies}
+          initialBalance={initialBalance}
         />
       )}
       <div 
