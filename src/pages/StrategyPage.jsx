@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Edit3, Trash2, Plus, CheckCircle, Camera, Image as ImageIcon } from "lucide-react";
+import { Edit3, Trash2, Plus, CheckCircle, Camera, Image as ImageIcon, Eye } from "lucide-react";
 import { addItem, updateItem, getItem, deleteItem } from "../config/db";
 import { useLocalImage } from "../hooks/useLocalImage";
 import { FullscreenImageModal } from "../components/modals/FullscreenImageModal";
+import { StrategyDetailModal } from "../components/modals/StrategyDetailModal";
 
 // --- SUBCOMPONENT: Helper to load and display saved strategy thumbnail ---
 const StrategyImageLoader = ({ imageId, onClick }) => {
@@ -67,6 +68,10 @@ export const StrategyPage = ({
   // Fullscreen Lightbox states
   const [previewImages, setPreviewImages] = useState([]);
   const [previewInitialIndex, setPreviewInitialIndex] = useState(-1);
+
+  // Strategy Details Modal & Expand/Collapse states
+  const [selectedStrategyForDetail, setSelectedStrategyForDetail] = useState(null);
+  const [expandedDescIds, setExpandedDescIds] = useState({});
 
   const handleAddChecklist = () => {
     if (newCheckItem.trim() && !checklists.includes(newCheckItem.trim())) {
@@ -214,6 +219,19 @@ export const StrategyPage = ({
           images={previewImages}
           initialIndex={previewInitialIndex}
           onClose={handleClosePreview}
+        />
+      )}
+
+      {/* Strategy Detail Modal */}
+      {selectedStrategyForDetail && (
+        <StrategyDetailModal
+          isOpen={!!selectedStrategyForDetail}
+          onClose={() => setSelectedStrategyForDetail(null)}
+          strategy={selectedStrategyForDetail}
+          tradingProfiles={tradingProfiles}
+          onEdit={handleEditClick}
+          onDelete={openDeleteModal}
+          handleImagePreview={handleImagePreview}
         />
       )}
 
@@ -440,7 +458,11 @@ export const StrategyPage = ({
                 >
                   <div>
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-gray-900 dark:text-white text-lg pr-8 truncate">
+                      <h4 
+                        onClick={() => setSelectedStrategyForDetail(strat)}
+                        className="font-bold text-gray-900 dark:text-white text-lg pr-8 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors truncate flex-1"
+                        title="Klik untuk detail strategi"
+                      >
                         {strat.title}
                       </h4>
                       {strat.probability && (
@@ -457,9 +479,22 @@ export const StrategyPage = ({
                       </div>
                     )}
                     {strat.description && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-wrap line-clamp-3 border-b border-gray-100 dark:border-gray-700 pb-2 mb-2">
-                        {strat.description}
-                      </p>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 pb-2 mb-2">
+                        <p className={`whitespace-pre-wrap leading-relaxed ${expandedDescIds[strat.id] ? "" : "line-clamp-3"}`}>
+                          {strat.description}
+                        </p>
+                        {strat.description.length > 120 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExpandedDescIds(prev => ({ ...prev, [strat.id]: !prev[strat.id] }));
+                            }}
+                            className="text-[11px] font-bold text-blue-500 dark:text-blue-400 hover:underline mt-1 focus:outline-none"
+                          >
+                            {expandedDescIds[strat.id] ? "Sembunyikan" : "Selengkapnya..."}
+                          </button>
+                        )}
+                      </div>
                     )}
                     {strat.checklists && strat.checklists.length > 0 && (
                       <div className="space-y-1 mb-2">
@@ -469,13 +504,13 @@ export const StrategyPage = ({
                         {strat.checklists.map((chk, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center text-xs text-gray-600 dark:text-gray-400 gap-1.5"
+                            className="flex items-start text-xs text-gray-600 dark:text-gray-400 gap-1.5"
                           >
                             <CheckCircle
                               size={12}
-                              className="text-green-500 flex-shrink-0"
+                              className="text-green-500 flex-shrink-0 mt-0.5"
                             />
-                            <span className="truncate">{chk}</span>
+                            <span className="break-words flex-1">{chk}</span>
                           </div>
                         ))}
                       </div>
@@ -501,6 +536,14 @@ export const StrategyPage = ({
                   </div>
 
                   <div className="flex justify-end gap-1 border-t dark:border-gray-700 pt-3 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStrategyForDetail(strat)}
+                      className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950 rounded transition-colors"
+                      title="Lihat Detail Strategi"
+                    >
+                      <Eye size={16} />
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleEditClick(strat)}
