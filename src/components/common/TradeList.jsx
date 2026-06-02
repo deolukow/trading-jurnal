@@ -277,11 +277,24 @@ export const TradeList = ({
                        trade.rating === 1 ? "C" : "-"}
                     </span>
                   </td>
-                  {customFields.map((field) => (
-                    <td key={field.id} className="p-3">
-                      {trade.customData?.[field.name] || "-"}
-                    </td>
-                  ))}
+                  {customFields.map((field) => {
+                    const val = trade.customData?.[field.name];
+                    return (
+                      <td key={field.id} className="p-3">
+                        {Array.isArray(val) ? (
+                          <div className="flex flex-wrap gap-1">
+                            {val.length > 0 ? val.map((v, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold rounded-full whitespace-nowrap border border-blue-200 dark:border-blue-700/50">
+                                {v}
+                              </span>
+                            )) : "-"}
+                          </div>
+                        ) : (
+                          val || "-"
+                        )}
+                      </td>
+                    );
+                  })}
                   <td className="p-3 text-center">
                     <div className="flex items-center justify-center space-x-2">
                       <button

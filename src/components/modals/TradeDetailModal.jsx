@@ -504,7 +504,17 @@ export const TradeDetailModal = ({
                         {field.name}:
                       </span>
                       <span className="text-gray-800 dark:text-white font-medium text-right">
-                        {trade.customData[field.name]}
+                        {Array.isArray(trade.customData[field.name]) ? (
+                          <div className="flex flex-wrap gap-1 justify-end">
+                            {trade.customData[field.name].length > 0 ? trade.customData[field.name].map((v, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold rounded-full border border-blue-200 dark:border-blue-700/50">
+                                {v}
+                              </span>
+                            )) : "-"}
+                          </div>
+                        ) : (
+                          trade.customData[field.name] || "-"
+                        )}
                       </span>
                     </div>
                   ))}

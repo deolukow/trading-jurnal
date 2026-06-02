@@ -84,7 +84,12 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD", 
         value = profileObj ? profileObj.name : "Unknown";
       } else if (selectedField.startsWith("custom_")) {
         const fieldName = selectedField.replace("custom_", "");
-        value = trade.customData?.[fieldName] || "N/A";
+        const customValue = trade.customData?.[fieldName];
+        if (Array.isArray(customValue)) {
+          value = customValue.length > 0 ? customValue.join(", ") : "N/A";
+        } else {
+          value = customValue || "N/A";
+        }
       } else {
         value = trade[selectedField] || "N/A";
       }

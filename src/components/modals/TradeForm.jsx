@@ -36,7 +36,7 @@ export const TradeForm = ({
       criteriaChecked: [],
     };
     customFields.forEach((field) => {
-      baseData.customData[field.name] = "";
+      baseData.customData[field.name] = field.type === "multiple" ? [] : "";
     });
     return baseData;
   }, [customFields]);
@@ -114,7 +114,7 @@ export const TradeForm = ({
     dataToEdit.customData = dataToEdit.customData || {};
     customFields.forEach((field) => {
       if (!dataToEdit.customData.hasOwnProperty(field.name)) {
-        dataToEdit.customData[field.name] = "";
+        dataToEdit.customData[field.name] = field.type === "multiple" ? [] : "";
       }
     });
 
@@ -190,6 +190,23 @@ export const TradeForm = ({
         [name]: value,
       },
     }));
+  };
+
+  const handleCustomFieldMultipleToggle = (fieldName, option) => {
+    setFormData((prev) => {
+      const currentList = Array.isArray(prev.customData?.[fieldName]) ? prev.customData[fieldName] : [];
+      const newList = currentList.includes(option)
+        ? currentList.filter(o => o !== option)
+        : [...currentList, option];
+      
+      return {
+        ...prev,
+        customData: {
+          ...prev.customData,
+          [fieldName]: newList
+        }
+      };
+    });
   };
 
   const handleFileChange = (e, fileType) => {
@@ -740,12 +757,33 @@ export const TradeForm = ({
                     </option>
                   ))}
                 </select>
+              ) : field.type === "multiple" ? (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {field.options && field.options.map((opt, i) => {
+                    const currentList = Array.isArray(formData.customData?.[field.name]) ? formData.customData[field.name] : [];
+                    const isSelected = currentList.includes(opt);
+                    return (
+                      <button
+                        type="button"
+                        key={i}
+                        onClick={() => handleCustomFieldMultipleToggle(field.name, opt)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 shadow-sm select-none focus:outline-none ${
+                          isSelected 
+                            ? "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 shadow-inner" 
+                            : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-blue-300 dark:hover:border-blue-700/50"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
                 <input
                   name={field.name}
                   value={formData.customData?.[field.name] || ""}
                   onChange={handleCustomFieldChange}
-                  placeholder={`Input untuk {field.name}`}
+                  placeholder={`Input untuk ${field.name}`}
                   className="w-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white p-2 rounded border border-transparent focus:border-blue-500 outline-none"
                 />
               )}

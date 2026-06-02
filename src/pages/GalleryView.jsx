@@ -69,8 +69,11 @@ export const GalleryView = ({
         vals.add(t.rating || 5);
       } else if (fieldKey.startsWith("custom_")) {
         const fName = fieldKey.replace("custom_", "");
-        if (t.customData?.[fName]) {
-          vals.add(t.customData[fName]);
+        const customValue = t.customData?.[fName];
+        if (Array.isArray(customValue)) {
+          customValue.forEach(v => vals.add(v));
+        } else if (customValue) {
+          vals.add(customValue);
         }
       } else {
         if (t[fieldKey]) {
@@ -91,7 +94,11 @@ export const GalleryView = ({
         return (t.rating || 5) === value;
       } else if (fieldKey.startsWith("custom_")) {
         const fName = fieldKey.replace("custom_", "");
-        return t.customData?.[fName] === value;
+        const customValue = t.customData?.[fName];
+        if (Array.isArray(customValue)) {
+          return customValue.includes(value);
+        }
+        return customValue === value;
       } else {
         return t[fieldKey] === value;
       }
@@ -148,13 +155,19 @@ export const GalleryView = ({
           tradeVal = trade.rating || 5;
         } else if (fieldKey.startsWith("custom_")) {
           const fName = fieldKey.replace("custom_", "");
-          tradeVal = trade.customData?.[fName] || "";
+          tradeVal = trade.customData?.[fName];
         } else {
           tradeVal = trade[fieldKey] || "";
         }
 
-        if (!activeVals.includes(tradeVal)) {
-          return false; // Fails active filter
+        if (Array.isArray(tradeVal)) {
+          // Pass if the trade has at least one matching selected option
+          const hasMatch = tradeVal.some(v => activeVals.includes(v));
+          if (!hasMatch) return false;
+        } else {
+          if (!activeVals.includes(tradeVal || "")) {
+            return false;
+          }
         }
       }
       return true; // Passes all filters
