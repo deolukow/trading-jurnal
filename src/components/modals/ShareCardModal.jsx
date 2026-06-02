@@ -6,7 +6,7 @@ import { useLocalImage } from "../../hooks/useLocalImage";
 export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, strategies = [], initialBalance = 0 }) => {
   const isDashboard = trade?.isDashboard || false;
 
-  const [username, setUsername] = useState("deolukow");
+  const [username, setUsername] = useState(activeProfileName || "deolukow");
   const [isVerified, setIsVerified] = useState(true);
   
   // Custom values for editing before sharing
@@ -120,11 +120,12 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, st
     }
   }, [trade, isDashboard]);
 
-  // Sync default footer text and header badge when activeProfileName loads
+  // Sync default footer text, header badge, and username when activeProfileName loads
   useEffect(() => {
     if (activeProfileName) {
       setFooterText(activeProfileName);
       setHeaderBadge(activeProfileName);
+      setUsername(activeProfileName);
     }
   }, [activeProfileName]);
 
@@ -1223,7 +1224,7 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, st
 
             {/* Input Username */}
             <div className="space-y-1.5">
-              <label className="text-xs text-gray-400 font-medium">Username Profil</label>
+              <label className="text-xs text-gray-400 font-medium">Nama Profile / Username</label>
               <input
                 type="text"
                 value={username}
