@@ -98,7 +98,7 @@ export const CustomFieldManagementModal = ({
       profileId: activeProfileId,
       name: name,
       type: fieldType,
-      options: fieldType === "dropdown" ? dropdownOptions : [],
+      options: (fieldType === "dropdown" || fieldType === "multiple") ? dropdownOptions : [],
       order: editingField && editingField.order !== undefined ? editingField.order : customFields.length,
       createdAt: editingField ? editingField.createdAt : new Date(),
       updatedAt: new Date(),
@@ -243,10 +243,10 @@ export const CustomFieldManagementModal = ({
                 <button
                   type="button"
                   onClick={() => setFieldType("text")}
-                  className={`flex-1 py-2 text-sm rounded border transition-colors ${
+                  className={`flex-1 py-2 text-[11px] font-semibold rounded border transition-colors ${
                     fieldType === "text"
                       ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white dark:bg-gray-800 text-gray-500 border-gray-300 dark:border-gray-600"
+                      : "bg-white dark:bg-gray-800 text-gray-500 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                 >
                   Teks Bebas
@@ -254,18 +254,29 @@ export const CustomFieldManagementModal = ({
                 <button
                   type="button"
                   onClick={() => setFieldType("dropdown")}
-                  className={`flex-1 py-2 text-sm rounded border transition-colors ${
+                  className={`flex-1 py-2 text-[11px] font-semibold rounded border transition-colors ${
                     fieldType === "dropdown"
                       ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white dark:bg-gray-800 text-gray-500 border-gray-300 dark:border-gray-600"
+                      : "bg-white dark:bg-gray-800 text-gray-500 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                 >
-                  Dropdown (Pilihan)
+                  Dropdown
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFieldType("multiple")}
+                  className={`flex-1 py-2 text-[11px] font-semibold rounded border transition-colors ${
+                    fieldType === "multiple"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white dark:bg-gray-800 text-gray-500 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  Multiple Select
                 </button>
               </div>
             </div>
 
-            {fieldType === "dropdown" && (
+            {(fieldType === "dropdown" || fieldType === "multiple") && (
               <div className="space-y-2 animate-fadeIn">
                 <label className="block text-xs font-medium text-gray-500 mb-1">
                   Opsi Dropdown
@@ -348,7 +359,9 @@ export const CustomFieldManagementModal = ({
                       <span className="text-xs text-gray-500 capitalize">
                         {f.type === "dropdown"
                           ? `Dropdown (${f.options.length} opsi)`
-                          : "Teks Bebas"}
+                          : f.type === "multiple"
+                            ? `Multiple Select (${f.options.length} opsi)`
+                            : "Teks Bebas"}
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
@@ -375,11 +388,11 @@ export const CustomFieldManagementModal = ({
                       </div>
 
                       {/* Edit / Delete controls */}
-                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex space-x-1 transition-opacity">
                         <button
                           type="button"
                           onClick={() => handleEdit(f)}
-                          className="p-1.5 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900 rounded"
+                          className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded transition-colors"
                           title="Edit Field"
                         >
                           <Edit3 size={16} />
@@ -387,7 +400,7 @@ export const CustomFieldManagementModal = ({
                         <button
                           type="button"
                           onClick={() => openDeleteModal("custom_field", f)}
-                          className="p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                          className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded transition-colors"
                           title="Hapus Field"
                         >
                           <Trash2 size={16} />
