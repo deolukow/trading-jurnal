@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Image, Info, Filter, X, RotateCcw, CheckSquare, Square } from "lucide-react";
+import { Image, Info, Filter, X, RotateCcw, CheckSquare, Square, TrendingUp, DollarSign, Target, Percent, Activity } from "lucide-react";
 import { DateRangePicker } from "../components/dashboard/DateRangePicker";
 import { useLocalImage } from "../hooks/useLocalImage";
 import { formatDateTime, formatCurrency } from "../utils/formatters";
@@ -183,6 +183,27 @@ export const GalleryView = ({
 
   // Extract counts of active filters
   const activeFiltersCount = Object.keys(selectedFilters).length;
+
+  // Calculate Summary Statistics based on filteredGalleryTrades
+  const summaryStats = useMemo(() => {
+    const totalTrades = filteredGalleryTrades.length;
+    let winCount = 0;
+    let lossCount = 0;
+    let totalPnl = 0;
+    let totalRR = 0;
+
+    filteredGalleryTrades.forEach(trade => {
+      const pnl = Number(trade.pnl) || 0;
+      if (pnl > 0) winCount++;
+      else if (pnl < 0) lossCount++;
+      totalPnl += pnl;
+      totalRR += Number(trade.riskRewardRatio) || 0;
+    });
+
+    const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
+
+    return { totalTrades, winCount, lossCount, totalPnl, winRate, totalRR };
+  }, [filteredGalleryTrades]);
 
   const GalleryImage = ({ trade }) => {
     const imageUrl = useLocalImage(trade.screenshotAfterId);
@@ -490,6 +511,47 @@ export const GalleryView = ({
           onStartDateChange={setCustomStartDate}
           onEndDateChange={setCustomEndDate}
         />
+      )}
+
+      {/* Summary Statistics Widget */}
+      {filteredGalleryTrades.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 animate-fadeSlide">
+          {/* Total Trades */}
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center hover:-translate-y-1 transition-transform">
+            <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold mb-1 flex items-center gap-1.5"><Activity size={14} className="text-blue-500" /> Total Trade</span>
+            <span className="text-xl font-black text-gray-800 dark:text-gray-100">{summaryStats.totalTrades}</span>
+          </div>
+          {/* Win / Loss */}
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center hover:-translate-y-1 transition-transform">
+            <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold mb-1 flex items-center gap-1.5"><Target size={14} className="text-indigo-500" /> Win / Loss</span>
+            <div className="flex items-center gap-2 text-lg font-black">
+              <span className="text-emerald-500">{summaryStats.winCount}W</span>
+              <span className="text-gray-300 dark:text-gray-600">-</span>
+              <span className="text-red-500">{summaryStats.lossCount}L</span>
+            </div>
+          </div>
+          {/* Win Rate */}
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center hover:-translate-y-1 transition-transform">
+            <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold mb-1 flex items-center gap-1.5"><Percent size={14} className="text-violet-500" /> Win Rate</span>
+            <span className={`text-xl font-black ${summaryStats.winRate >= 50 ? 'text-emerald-500' : 'text-amber-500'}`}>
+              {summaryStats.winRate.toFixed(1)}%
+            </span>
+          </div>
+          {/* Total PnL */}
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center hover:-translate-y-1 transition-transform">
+            <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold mb-1 flex items-center gap-1.5"><DollarSign size={14} className="text-amber-500" /> Total P&L</span>
+            <span className={`text-xl font-black ${summaryStats.totalPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+              {summaryStats.totalPnl > 0 ? '+' : ''}{formatCurrency(summaryStats.totalPnl, currency)}
+            </span>
+          </div>
+          {/* Total RR */}
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center hover:-translate-y-1 transition-transform">
+            <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold mb-1 flex items-center gap-1.5"><TrendingUp size={14} className="text-cyan-500" /> Total R:R</span>
+            <span className={`text-xl font-black ${summaryStats.totalRR >= 0 ? 'text-cyan-600 dark:text-cyan-400' : 'text-red-500'}`}>
+              {summaryStats.totalRR > 0 ? '+' : ''}{summaryStats.totalRR.toFixed(2)}R
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Final Layout Cards Grid */}
