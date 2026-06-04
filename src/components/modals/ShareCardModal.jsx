@@ -6,7 +6,16 @@ import { useLocalImage } from "../../hooks/useLocalImage";
 export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, strategies = [], initialBalance = 0 }) => {
   const isDashboard = trade?.isDashboard || false;
 
-  const [username, setUsername] = useState(activeProfileName || "deolukow");
+  const [username, setUsername] = useState(() => {
+    return localStorage.getItem("share_card_username") || activeProfileName || "deolukow";
+  });
+  
+  useEffect(() => {
+    if (username) {
+      localStorage.setItem("share_card_username", username);
+    }
+  }, [username]);
+
   const [isVerified, setIsVerified] = useState(true);
   
   // Custom values for editing before sharing
@@ -125,7 +134,11 @@ export const ShareCardModal = ({ trade, onClose, currency, activeProfileName, st
     if (activeProfileName) {
       setFooterText(activeProfileName);
       setHeaderBadge(activeProfileName);
-      setUsername(activeProfileName);
+      
+      const savedUsername = localStorage.getItem("share_card_username");
+      if (!savedUsername) {
+        setUsername(activeProfileName);
+      }
     }
   }, [activeProfileName]);
 
