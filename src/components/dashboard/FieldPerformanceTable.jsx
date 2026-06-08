@@ -124,10 +124,13 @@ export const FieldPerformanceTable = ({ trades, customFields, currency = "USD", 
         groups[value].totalPnl[curr] += trade.pnl || 0;
       }
 
-      if (trade.pnl > 0) groups[value].wins++;
-      else if (trade.pnl < 0) groups[value].losses++;
-
-      groups[value].totalRR += parseFloat(trade.riskRewardRatio) || 0;
+      if (trade.pnl > 0) {
+        groups[value].wins++;
+        groups[value].totalRR += parseFloat(trade.riskRewardRatio) || 0;
+      } else if (trade.pnl < 0) {
+        groups[value].losses++;
+        groups[value].totalRR -= 1;
+      }
     });
 
     return Object.values(groups)

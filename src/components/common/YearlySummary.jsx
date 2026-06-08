@@ -16,11 +16,12 @@ export const YearlySummary = ({ trades, currency, year }) => {
       const tradeMonth = new Date(trade.tradeDate).getMonth();
       months[tradeMonth].pnl += trade.pnl;
       months[tradeMonth].trades++;
-      months[tradeMonth].totalRR += parseFloat(trade.riskRewardRatio) || 0;
       if (trade.pnl > 0) {
         months[tradeMonth].wins++;
+        months[tradeMonth].totalRR += parseFloat(trade.riskRewardRatio) || 0;
       } else if (trade.pnl < 0) {
         months[tradeMonth].losses++;
+        months[tradeMonth].totalRR -= 1;
       }
     });
 

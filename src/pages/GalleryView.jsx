@@ -194,10 +194,14 @@ export const GalleryView = ({
 
     filteredGalleryTrades.forEach(trade => {
       const pnl = Number(trade.pnl) || 0;
-      if (pnl > 0) winCount++;
-      else if (pnl < 0) lossCount++;
+      if (pnl > 0) {
+        winCount++;
+        totalRR += Number(trade.riskRewardRatio) || 0;
+      } else if (pnl < 0) {
+        lossCount++;
+        totalRR -= 1;
+      }
       totalPnl += pnl;
-      totalRR += Number(trade.riskRewardRatio) || 0;
     });
 
     const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
