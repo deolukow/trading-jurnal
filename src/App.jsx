@@ -1395,7 +1395,7 @@ function App() {
         const start = getStartOfDate(customStartDate);
         const end = getEndOfDate(customEndDate);
         return allTrades.filter((t) => {
-          const tradeDate = t.tradeDate || new Date(0);
+          const tradeDate = t.tradeDate ? new Date(t.tradeDate) : new Date(0);
           return tradeDate >= start && tradeDate <= end;
         });
       }
@@ -1423,7 +1423,7 @@ function App() {
           break;
       }
       return allTrades.filter(
-        (t) => (t.tradeDate || new Date(0)) >= startOfPeriod,
+        (t) => (t.tradeDate ? new Date(t.tradeDate) : new Date(0)) >= startOfPeriod,
       );
     };
     return filterFn(trades, activePeriod);
