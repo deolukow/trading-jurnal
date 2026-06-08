@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Save, UploadCloud, Camera, Edit3, Star } from "lucide-react";
+import { Save, UploadCloud, Camera, Edit3, Star, Maximize } from "lucide-react";
 import { useLocalImage } from "../../hooks/useLocalImage";
 import { toDateTimeLocalInput } from "../../utils/formatters";
+import { FullscreenImageModal } from "./FullscreenImageModal";
 
 export const TradeForm = ({
   onSaveTrade,
@@ -48,6 +49,52 @@ export const TradeForm = ({
 
   const existingBeforeImageUrl = useLocalImage(formData.screenshotBeforeId);
   const existingAfterImageUrl = useLocalImage(formData.screenshotAfterId);
+
+  const [previewBefore, setPreviewBefore] = useState(null);
+  const [previewAfter, setPreviewAfter] = useState(null);
+
+  useEffect(() => {
+    if (screenshotBeforeFile) {
+      const url = URL.createObjectURL(screenshotBeforeFile);
+      setPreviewBefore(url);
+      return () => URL.revokeObjectURL(url);
+    } else setPreviewBefore(null);
+  }, [screenshotBeforeFile]);
+
+  useEffect(() => {
+    if (screenshotAfterFile) {
+      const url = URL.createObjectURL(screenshotAfterFile);
+      setPreviewAfter(url);
+      return () => URL.revokeObjectURL(url);
+    } else setPreviewAfter(null);
+  }, [screenshotAfterFile]);
+
+  const finalBeforeUrl = previewBefore || existingBeforeImageUrl;
+  const finalAfterUrl = previewAfter || existingAfterImageUrl;
+
+  const [fullscreenImages, setFullscreenImages] = useState([]);
+  const [fullscreenIndex, setFullscreenIndex] = useState(-1);
+
+  const handleViewImage = (clickedType) => {
+    const images = [];
+    let targetIndex = 0;
+
+    if (finalBeforeUrl) {
+      images.push({ url: finalBeforeUrl, title: "Screenshot (Sebelum)" });
+    }
+    if (finalAfterUrl) {
+      images.push({ url: finalAfterUrl, title: "Screenshot (Sesudah)" });
+    }
+
+    if (clickedType === "after" && finalBeforeUrl && finalAfterUrl) {
+      targetIndex = 1;
+    } else {
+      targetIndex = 0;
+    }
+
+    setFullscreenImages(images);
+    setFullscreenIndex(targetIndex);
+  };
 
   // Touch Drag / Swipe-down to Dismiss Logic (Native Bottom Sheet Feel)
   const [translateY, setTranslateY] = useState(0);
@@ -279,22 +326,7 @@ export const TradeForm = ({
     onSaveTrade(finalData, screenshotBeforeFile, screenshotAfterFile);
   };
 
-  const FileInput = ({ id, label, file, onChange, existingImageUrl }) => {
-    const [preview, setPreview] = useState(null);
-
-    useEffect(() => {
-      if (!file) {
-        setPreview(null);
-        return;
-      }
-      const objectUrl = URL.createObjectURL(file);
-      setPreview(objectUrl);
-
-      return () => URL.revokeObjectURL(objectUrl);
-    }, [file]);
-
-    const currentImage = preview || existingImageUrl;
-
+  const FileInput = ({ id, label, file, onChange, currentImage, onViewClick }) => {
     return (
       <div className="md:col-span-3">
         <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
@@ -303,18 +335,18 @@ export const TradeForm = ({
         <div className="flex items-center gap-4">
           <div className="w-24 h-24 flex-shrink-0">
             {currentImage ? (
-              <div className="relative group w-full h-full">
+              <div 
+                className="relative w-full h-full cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onViewClick) onViewClick();
+                }}
+              >
                 <img
                   src={currentImage}
                   alt="Preview"
                   className="h-full w-full object-cover rounded-lg"
                 />
-                <label
-                  htmlFor={id}
-                  className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg cursor-pointer"
-                >
-                  <Edit3 size={24} className="text-white" />
-                </label>
               </div>
             ) : (
               <div className="h-full w-full bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
@@ -795,14 +827,16 @@ export const TradeForm = ({
             label="Screenshot (Sebelum)"
             file={screenshotBeforeFile}
             onChange={(e) => handleFileChange(e, "before")}
-            existingImageUrl={existingBeforeImageUrl}
+            currentImage={finalBeforeUrl}
+            onViewClick={() => handleViewImage("before")}
           />
           <FileInput
             id="ss-after"
             label="Screenshot (Sesudah)"
             file={screenshotAfterFile}
             onChange={(e) => handleFileChange(e, "after")}
-            existingImageUrl={existingAfterImageUrl}
+            currentImage={finalAfterUrl}
+            onViewClick={() => handleViewImage("after")}
           />
 
           <textarea
@@ -831,6 +865,13 @@ export const TradeForm = ({
           </button>
         </div>
       </form>
+      {fullscreenIndex !== -1 && fullscreenImages.length > 0 && (
+        <FullscreenImageModal
+          images={fullscreenImages}
+          initialIndex={fullscreenIndex}
+          onClose={() => setFullscreenIndex(-1)}
+        />
+      )}
     </div>
   );
 };

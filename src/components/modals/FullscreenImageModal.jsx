@@ -137,6 +137,13 @@ export const FullscreenImageModal = ({ images, initialIndex, onClose }) => {
         onClose();
         return;
       }
+    } else if (dragDirection.current === null) {
+      if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+        if (e.target.tagName.toLowerCase() !== "img" && !e.target.closest("button")) {
+          onClose();
+          return;
+        }
+      }
     }
 
     setDragOffset({ x: 0, y: 0 });
