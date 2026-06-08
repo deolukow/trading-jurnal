@@ -10,7 +10,9 @@ import {
   Key,
   RefreshCw,
   ArrowDownCircle,
-  ArrowUpCircle
+  ArrowUpCircle,
+  FileDown,
+  FileUp
 } from "lucide-react";
 import { exportIndexedDB, importIndexedDB } from "../config/db";
 
@@ -293,6 +295,82 @@ export const SyncPage = ({ activeProfile, showToast, onRefresh }) => {
     }
   };
 
+  // Export data to local JSON file
+  const handleExportLocalJSON = async () => {
+    setIsSyncing(true);
+    try {
+      showToast("Sedang mempersiapkan data cadangan...", "info");
+      const backupData = await exportIndexedDB();
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      const dateStr = new Date().toISOString().split('T')[0];
+      const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `trading_journal_backup_${activeProfile?.name || 'default'}_${dateStr}_${timeStr}.json`;
+      
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showToast("Berhasil mengunduh file cadangan JSON!", "success");
+    } catch (e) {
+      console.error(e);
+      showToast("Gagal mengekspor file cadangan.", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Import data from local JSON file
+  const handleImportLocalJSON = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const confirmRestore = window.confirm(
+      "PERHATIAN! Mengimpor data cadangan lokal akan menghapus seluruh data saat ini pada perangkat ini dan menggantinya dengan data dari file JSON.\n\nApakah Anda yakin ingin melanjutkan?"
+    );
+    if (!confirmRestore) {
+      event.target.value = ""; // Reset file input
+      return;
+    }
+
+    setIsSyncing(true);
+    showToast("Membaca file cadangan...", "info");
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const backupData = JSON.parse(e.target.result);
+        if (!backupData || !backupData.stores) {
+          throw new Error("Format data cadangan tidak valid.");
+        }
+
+        showToast("Mempopulasikan database lokal (IndexedDB)...", "info");
+        await importIndexedDB(backupData);
+
+        showToast("Pemulihan data sukses! Aplikasi akan dimuat ulang...", "success");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err) {
+        console.error(err);
+        showToast("Gagal memulihkan data. Pastikan file JSON cadangan valid.", "error");
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+    reader.onerror = () => {
+      showToast("Gagal membaca file.", "error");
+      setIsSyncing(false);
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 animate-fadeIn select-none text-gray-900 dark:text-gray-100">
       {/* Intro Header */}
@@ -457,6 +535,66 @@ export const SyncPage = ({ activeProfile, showToast, onRefresh }) => {
                     )}
                     Impor dari Cloud (Download)
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-250 dark:border-gray-750 my-5"></div>
+
+            {/* Offline JSON Backup */}
+            <div>
+              <h4 className="font-bold text-sm mb-1 flex items-center gap-2">
+                Cadangan File Manual (JSON Offline)
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                Simpan file cadangan secara lokal di komputer Anda tanpa memerlukan akun cloud, atau impor kembali file cadangan Anda kapan saja.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Export JSON Button */}
+                <div className="p-4 bg-gray-50/50 dark:bg-gray-900/10 border border-gray-200/50 dark:border-gray-700/50 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-violet-500 block mb-1">
+                      Download Cadangan Lokal
+                    </span>
+                    <h5 className="font-bold text-xs mb-1">Ekspor File JSON</h5>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
+                      Mengunduh seluruh database trading saat ini menjadi file cadangan berformat <code>.json</code>.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleExportLocalJSON}
+                    disabled={isSyncing}
+                    className="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm hover:shadow-[0_0_10px_rgba(139,92,246,0.25)] active:scale-95 disabled:opacity-50"
+                  >
+                    <FileDown size={14} />
+                    Ekspor File JSON (.json)
+                  </button>
+                </div>
+
+                {/* Import JSON Button */}
+                <div className="p-4 bg-gray-50/50 dark:bg-gray-900/10 border border-gray-200/50 dark:border-gray-700/50 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 block mb-1">
+                      Pulihkan Cadangan Lokal
+                    </span>
+                    <h5 className="font-bold text-xs mb-1">Impor File JSON</h5>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
+                      Memuat database dari file <code>.json</code> yang sudah pernah diunduh sebelumnya untuk menimpa data saat ini.
+                    </p>
+                  </div>
+                  <label className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm hover:shadow-[0_0_10px_rgba(59,130,246,0.25)] active:scale-95 text-center">
+                    <FileUp size={14} />
+                    Impor File JSON (.json)
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportLocalJSON}
+                      disabled={isSyncing}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
               </div>
             </div>
